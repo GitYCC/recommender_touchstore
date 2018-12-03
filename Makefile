@@ -1,0 +1,16 @@
+
+.PHONY: help
+help:
+	@echo "Usage:"
+	@echo "    make <target>"
+	@echo
+	@echo "Targets:"
+	@echo "    prepare"
+	@echo "        Prepare public dataset."
+	@echo
+
+
+.PHONY: prepare
+prepare:
+	python ./prepare/download_raw.py
+	python ./prepare/split_raw.py
