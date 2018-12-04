@@ -10,11 +10,11 @@ GroupLens Research has collected and made available rating data sets from the Mo
 
 This dataset (ml-20m) describes 5-star rating and free-text tagging activity from MovieLens, a movie recommendation service. It contains 20000263 ratings and 465564 tag applications across 27278 movies. These data were created by 138493 users between January 09, 1995 and March 31, 2015. This dataset was generated on March 31, 2015, and updated on October 17, 2016 to update links.csv and add genome-* files.
 
-## Prepare
+## Prepare Environment
 
 ### virtual environment and dependencies
 
-#### recommended method: pyenv + pipenv
+**1. recommended method: pyenv + pipenv**  
 
 use `pyenv` to local python version to this project,
 
@@ -42,7 +42,7 @@ if you want to exit virual environment,
 $ deactivate
 ```
 
-#### simple method
+**2. simple method**  
 create virtual environment
 
 ```
@@ -77,6 +77,8 @@ Splitting raw data into public and private dataset is according to the analysis 
 
 ## Questions
 
-1. Design a system to predict an unknown rating when given `userId` and `movieId` (at `./src/data/test_q1.csv`). Evaluate results by RMSE.
-2. Design a system to recommend a top-10 `movieId` list which `userId` did not see before (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10 and NDCG@10.
-3. Design a system to recommend a top-10 `userId` list to a new movie (at `./src/data/test_q3.txt`) when given some information of that new movie (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`). Evaluate results by MAP@10.
+Q1: Design a system to predict an unknown rating when given `userId` and `movieId` (at `./src/data/test_q1.csv`). Evaluate results by RMSE.  
+  
+Q2: Design a system to recommend a top-10 `movieId` list which `userId` did not see before (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10 and NDCG@10.  
+  
+Q3: Design a system to recommend a top-10 `userId` list to a new movie (at `./src/data/test_q3.txt`) when given some information of that new movie (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`). Evaluate results by MAP@10.  
