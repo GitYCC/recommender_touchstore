@@ -67,7 +67,7 @@ install dependencies under virtual environment
 $ pip3.6 install -r requirements.txt
 ```
 
-## Prepare Public Dataset
+## Prepare Public, Private, Question and Answer Data
 
 ```
 $ make prepare
@@ -75,3 +75,8 @@ $ make prepare
 
 Splitting raw data into public and private dataset is according to the analysis result in `./prepare/ml-20m_analysis.ipynb`.
 
+## Questions
+
+1. Design a system to predict an unknown rating when given `userId` and `movieId` (at `./src/data/test_q1.csv`). Evaluate results by RMSE.
+2. Design a system to recommend a top-10 `movieId` list which `userId` did not see before (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10 and NDCG@10.
+3. Design a system to recommend a top-10 `userId` list to a new movie (at `./src/data/test_q3.txt`) when given some information of that new movie (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`). Evaluate results by MAP@10.
