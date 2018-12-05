@@ -19,14 +19,14 @@ This dataset (ml-20m) describes 5-star rating and free-text tagging activity fro
 use `pyenv` to local python version to this project,
 
 ```
-$ pyenv install 3.6.5
+$ pyenv install 3.6.4
 $ pyenv local
 ```
 
 use `pipenv` to set up dependencies,
 
 ```
-$ pipenv --python 3.6.5
+$ pipenv --python 3.6.4
 $ pipenv install -r requirements.txt
 ```
 
