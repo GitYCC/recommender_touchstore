@@ -21,4 +21,4 @@ six = "==1.11.0"
 progressbar2 = "==3.38.0"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6.4"
