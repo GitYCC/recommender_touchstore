@@ -6,7 +6,7 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 
 WORKSPACE = os.path.dirname(__file__)
-DIR_PUBLIC_DATA = os.path.join(WORKSPACE, '..', 'src', 'data')
+DIR_PUBLIC_DATA = os.path.join(WORKSPACE, '..', 'data')
 
 
 def _get_old_movies():

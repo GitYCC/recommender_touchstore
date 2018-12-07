@@ -8,7 +8,7 @@ DIR_MovieLens20M = os.path.join(WORKSPACE, 'ml-20m')
 CUT_DATETIME = datetime(2013, 1, 1)
 CUT_YEAR = 2013
 CUT_TIMESTAMP = int((CUT_DATETIME - datetime(1970, 1, 1)).total_seconds())
-DIR_PUBLIC_DATA = os.path.join(WORKSPACE, '..', 'src', 'data')
+DIR_PUBLIC_DATA = os.path.join(WORKSPACE, '..', 'data')
 
 
 def _split_by_timestamp(df, cut_timestamp):
