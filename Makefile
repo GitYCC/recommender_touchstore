@@ -13,6 +13,6 @@ help:
 .PHONY: prepare
 prepare:
 	python ./prepare/download_raw.py
-	mkdir -p ./src/data
+	mkdir -p ./data
 	python ./prepare/split_raw.py
 	python ./prepare/prepare_question.py
