@@ -93,3 +93,8 @@ def split_data_by_year(df_including_year, cut_year):
     df_after = (df_including_year[df_including_year.year >= cut_year]
                 .reset_index(drop=True))
     return (df_before, df_after)
+
+
+def select_data_by_movie_group(df_including_movieId, movie_group):  # noqa: N803
+    return (df_including_movieId[df_including_movieId.movieId.isin(movie_group)]
+            .reset_index(drop=True))

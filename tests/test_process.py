@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from process import split_data_by_datetime, split_data_by_year
+from process import split_data_by_datetime, split_data_by_year, select_data_by_movie_group
 
 
 def _dt2ts(dt):
@@ -38,3 +38,12 @@ def test_split_data_by_year():
     df_before, df_after = split_data_by_year(df, cut_year)
     pd.testing.assert_frame_equal(df_before, expect_df_before)
     pd.testing.assert_frame_equal(df_after, expect_df_after)
+
+
+def test_select_data_by_movie_group():
+    df = pd.DataFrame({'dummy': ['A', 'B', 'C'],
+                       'movieId': [1, 2, 3]})
+    movie_group = [2, 3]
+    expect_df = pd.DataFrame({'dummy': ['B', 'C', ], 'movieId': [2, 3, ]})
+    df = select_data_by_movie_group(df, movie_group)
+    pd.testing.assert_frame_equal(df, expect_df)
