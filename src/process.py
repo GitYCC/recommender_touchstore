@@ -85,3 +85,11 @@ def split_data_by_datetime(df_including_timestamp, cut_dt):
     df_after = (df_including_timestamp[df_including_timestamp.timestamp >= cut_timestamp]
                 .reset_index(drop=True))
     return (df_before, df_after)
+
+
+def split_data_by_year(df_including_year, cut_year):
+    df_before = (df_including_year[df_including_year.year < cut_year]
+                 .reset_index(drop=True))
+    df_after = (df_including_year[df_including_year.year >= cut_year]
+                .reset_index(drop=True))
+    return (df_before, df_after)

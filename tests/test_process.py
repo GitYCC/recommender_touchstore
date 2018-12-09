@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from process import split_data_by_datetime
+from process import split_data_by_datetime, split_data_by_year
 
 
 def _dt2ts(dt):
@@ -23,5 +23,18 @@ def test_split_data_by_datetime():
                                     'timestamp': list(map(_dt2ts, [datetime(2005, 1, 1),
                                                                    datetime(2010, 1, 1), ]))})
     df_before, df_after = split_data_by_datetime(df, cut_dt)
+    pd.testing.assert_frame_equal(df_before, expect_df_before)
+    pd.testing.assert_frame_equal(df_after, expect_df_after)
+
+
+def test_split_data_by_year():
+    df = pd.DataFrame({'dummy': ['A', 'B', 'C'],
+                       'year': [2000, 2005, 2010]})
+    cut_year = 2005
+    expect_df_before = pd.DataFrame({'dummy': ['A', ],
+                                     'year': [2000, ]})
+    expect_df_after = pd.DataFrame({'dummy': ['B', 'C', ],
+                                    'year': [2005, 2010]})
+    df_before, df_after = split_data_by_year(df, cut_year)
     pd.testing.assert_frame_equal(df_before, expect_df_before)
     pd.testing.assert_frame_equal(df_after, expect_df_after)
