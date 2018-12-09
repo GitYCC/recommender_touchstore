@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -70,3 +71,17 @@ def get_question3_ref():
     df_ref_movies = _refine_movies(df_ref_movies)
     df_ref_genome = pd.read_csv(os.path.join(config.DIR_DATA, 'ref_genome_q3.csv'))
     return df_ref_movies, df_ref_genome
+
+
+def _dt2ts(dt):
+    timestamp = int((dt - datetime(1970, 1, 1)).total_seconds())
+    return timestamp
+
+
+def split_data_by_datetime(df_including_timestamp, cut_dt):
+    cut_timestamp = _dt2ts(cut_dt)
+    df_before = (df_including_timestamp[df_including_timestamp.timestamp < cut_timestamp]
+                 .reset_index(drop=True))
+    df_after = (df_including_timestamp[df_including_timestamp.timestamp >= cut_timestamp]
+                .reset_index(drop=True))
+    return (df_before, df_after)
