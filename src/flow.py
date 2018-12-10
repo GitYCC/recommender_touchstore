@@ -5,19 +5,19 @@ import process
 from process import Datagroup
 
 
-def _get_run_id_of_dataset(train_start_year, valid_start_year):
-    run_id = tracer.get_run_id_from_param('dataset',
+def _get_run_id_of_datagroup(train_start_year, valid_start_year):
+    run_id = tracer.get_run_id_from_param('datagroup',
                                           {'train_start_year': train_start_year,
                                            'valid_start_year': valid_start_year})
     return run_id
 
 
-def prepare_dataset(train_start_year, valid_start_year):
-    run_id = _get_run_id_of_dataset(train_start_year, valid_start_year)
+def prepare_datagroup(train_start_year, valid_start_year):
+    run_id = _get_run_id_of_datagroup(train_start_year, valid_start_year)
     if run_id is not None:
         return run_id
 
-    tracer.start_trace('dataset')
+    tracer.start_trace('datagroup')
     tracer.log_param('train_start_year', train_start_year)
     tracer.log_param('valid_start_year', valid_start_year)
 
