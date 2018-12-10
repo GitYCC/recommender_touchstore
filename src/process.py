@@ -139,3 +139,11 @@ def save_datagroup(folder, datagroup, postfix):
         df.to_csv(path, index=False)
         paths.append(path)
     return paths
+
+
+def load_datagroup(folder, postfix):
+    dfs = dict()
+    for key in ['ratings', 'tags', 'movies', 'genome']:
+        dfs[key] = pd.read_csv(os.path.join(folder, key + '_' + postfix + '.csv'))
+    datagroup = Datagroup(**dfs)
+    return datagroup
