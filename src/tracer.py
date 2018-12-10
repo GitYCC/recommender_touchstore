@@ -1,4 +1,5 @@
 import os
+import yaml
 
 import mlflow
 
@@ -26,6 +27,17 @@ def _get_uri_of_run(run_id):
     return None
 
 
+def _get_uri_of_exp(exp_name):
+    path_mlrun = mlflow.tracking.get_tracking_uri()
+    for exp_id in os.listdir(path_mlrun):
+        path = os.path.join(path_mlrun, exp_id, 'meta.yaml')
+        with open(path, 'r') as fr:
+            name = yaml.load(fr)['name']
+            if exp_name == name:
+                return os.path.join(path_mlrun, exp_id)
+    return None
+
+
 @_Controller
 def start_trace(job_name=None):
     if job_name is not None:
@@ -38,6 +50,28 @@ def start_trace(job_name=None):
 @_Controller
 def end_trace():
     mlflow.end_run()
+
+
+@_Controller
+def get_current_run_id():
+    path_root = os.path.dirname(mlflow.get_artifact_uri())
+    run_id = path_root.split('/')[-1]
+    return run_id
+
+
+def get_run_id_from_param(job_name, param_dict):
+    path_exp = _get_uri_of_exp(job_name)
+    for run_id in os.listdir(path_exp):
+        is_valid = True
+        for param in os.listdir(os.path.join(path_exp, run_id, 'params')):
+            val = (open(os.path.join(path_exp, run_id, 'params', param), 'r')
+                   .readline().strip())
+            if str(param_dict[param]) != val:
+                is_valid = False
+                break
+        if is_valid:
+            return run_id
+    return None
 
 
 @_Controller
@@ -55,7 +89,6 @@ def log_artifact(fname):
     mlflow.log_artifact(fname)
 
 
-@_Controller
 def load_artifact(run_id, fname):
     return os.path.join(_get_uri_of_run(run_id), 'artifacts', fname)
 
@@ -70,7 +103,6 @@ def log_model(model_type, model, artifact_path):
         mlflow.tensorflow.log_model(model, artifact_path)
 
 
-@_Controller
 def load_model(run_id, model_type, path):
     if model_type == 'sklearn':
         return mlflow.sklearn.load_model(path, run_id)
