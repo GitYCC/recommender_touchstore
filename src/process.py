@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -98,3 +99,43 @@ def split_data_by_year(df_including_year, cut_year):
 def select_data_by_movie_group(df_including_movieId, movie_group):  # noqa: N803
     return (df_including_movieId[df_including_movieId.movieId.isin(movie_group)]
             .reset_index(drop=True))
+
+
+Datagroup = namedtuple('Datagroup', ['ratings', 'tags', 'movies', 'genome'])
+
+
+def split_datagroup(cut_year, datagroup):
+    cut_dt = datetime(cut_year, 1, 1)
+    df_ratings = datagroup.ratings
+    df_tags = datagroup.tags
+    df_movies = datagroup.movies
+    df_genome = datagroup.genome
+
+    df_ratings_before, df_ratings_after = \
+        split_data_by_datetime(df_ratings, cut_dt)
+    df_tags_before, df_tags_after = \
+        split_data_by_datetime(df_tags, cut_dt)
+    df_movies_before, df_movies_after = \
+        split_data_by_year(df_movies, cut_year)
+    df_genome_before = select_data_by_movie_group(df_genome, df_movies_before.movieId)
+    df_genome_after = select_data_by_movie_group(df_genome, df_movies_after.movieId)
+
+    datagroup_before = Datagroup(ratings=df_ratings_before,
+                                 tags=df_tags_before,
+                                 movies=df_movies_before,
+                                 genome=df_genome_before)
+    datagroup_after = Datagroup(ratings=df_ratings_after,
+                                tags=df_tags_after,
+                                movies=df_movies_after,
+                                genome=df_genome_after)
+    return (datagroup_before, datagroup_after)
+
+
+def save_datagroup(folder, datagroup, postfix):
+    paths = list()
+    for key in ['ratings', 'tags', 'movies', 'genome']:
+        df = getattr(datagroup, key)
+        path = os.path.join(folder, key + '_' + postfix + '.csv')
+        df.to_csv(path, index=False)
+        paths.append(path)
+    return paths
