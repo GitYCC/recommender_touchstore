@@ -61,7 +61,7 @@ def get_current_run_id():
 
 def get_run_id_from_param(job_name, param_dict):
     path_exp = _get_uri_of_exp(job_name)
-    for run_id in os.listdir(path_exp):
+    for run_id in filter(lambda x: x != 'meta.yaml', os.listdir(path_exp)):
         is_valid = True
         for param in os.listdir(os.path.join(path_exp, run_id, 'params')):
             val = (open(os.path.join(path_exp, run_id, 'params', param), 'r')
