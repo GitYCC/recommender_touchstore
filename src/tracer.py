@@ -29,7 +29,7 @@ def _get_uri_of_run(run_id):
 
 def _get_uri_of_exp(exp_name):
     path_mlrun = mlflow.tracking.get_tracking_uri()
-    for exp_id in os.listdir(path_mlrun):
+    for exp_id in filter(lambda x: x != '.trash', os.listdir(path_mlrun)):
         path = os.path.join(path_mlrun, exp_id, 'meta.yaml')
         with open(path, 'r') as fr:
             name = yaml.load(fr)['name']
