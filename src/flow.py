@@ -1,4 +1,4 @@
-import tempfile
+from tempfile import TemporaryDirectory
 
 import tracer
 import process
@@ -28,13 +28,13 @@ def prepare_datagroup(train_start_year, valid_start_year):
     _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
-    temp_dir = tempfile.mkdtemp()
-    paths = process.save_datagroup(temp_dir, train_group, 'train')
-    for path in paths:
-        tracer.log_artifact(path)
-    paths = process.save_datagroup(temp_dir, valid_group, 'valid')
-    for path in paths:
-        tracer.log_artifact(path)
+    with TemporaryDirectory(dir='tmp') as temp_dir:
+        paths = process.save_datagroup(temp_dir, train_group, 'train')
+        for path in paths:
+            tracer.log_artifact(path)
+        paths = process.save_datagroup(temp_dir, valid_group, 'valid')
+        for path in paths:
+            tracer.log_artifact(path)
 
     run_id = tracer.get_current_run_id()
     tracer.end_trace()
