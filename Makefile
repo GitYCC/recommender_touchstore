@@ -17,5 +17,5 @@ prepare:
 
 .PHONY: check
 check:
-	flake8 src/ tests/
 	pytest tests/
+	flake8 src/ tests/
