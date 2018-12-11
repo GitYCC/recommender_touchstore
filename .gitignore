@@ -117,6 +117,7 @@ venv.bak/
 */key/ssl.crt
 */key/ssl.key
 
-# pixel api log
-pixel_web.*.log*
-
+# data
+prepare/*
+data/*
+tmp/*

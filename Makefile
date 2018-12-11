@@ -5,10 +5,8 @@ help:
 	@echo "    make <target>"
 	@echo
 	@echo "Targets:"
-	@echo "    prepare"
-	@echo "        Prepare public dataset."
-	@echo
-
+	@echo "    prepare : Prepare public dataset."
+	@echo "    check : Check lint and tests."
 
 .PHONY: prepare
 prepare:
@@ -16,3 +14,8 @@ prepare:
 	mkdir -p ./data
 	python ./prepare/split_raw.py
 	python ./prepare/prepare_question.py
+
+.PHONY: check
+check:
+	pytest tests/
+	flake8 src/ tests/
