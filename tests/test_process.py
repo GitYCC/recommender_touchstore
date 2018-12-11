@@ -1,8 +1,11 @@
 from datetime import datetime
+from tempfile import TemporaryDirectory
 
+import pytest
 import pandas as pd
 
-from process import split_data_by_datetime, split_data_by_year, select_data_by_movie_group
+import process
+from process import Datagroup
 
 
 def _dt2ts(dt):
@@ -22,7 +25,7 @@ def test_split_data_by_datetime():
     expect_df_after = pd.DataFrame({'dummy': ['B', 'C', ],
                                     'timestamp': list(map(_dt2ts, [datetime(2005, 1, 1),
                                                                    datetime(2010, 1, 1), ]))})
-    df_before, df_after = split_data_by_datetime(df, cut_dt)
+    df_before, df_after = process.split_data_by_datetime(df, cut_dt)
     pd.testing.assert_frame_equal(df_before, expect_df_before)
     pd.testing.assert_frame_equal(df_after, expect_df_after)
 
@@ -35,7 +38,7 @@ def test_split_data_by_year():
                                      'year': [2000, ]})
     expect_df_after = pd.DataFrame({'dummy': ['B', 'C', ],
                                     'year': [2005, 2010]})
-    df_before, df_after = split_data_by_year(df, cut_year)
+    df_before, df_after = process.split_data_by_year(df, cut_year)
     pd.testing.assert_frame_equal(df_before, expect_df_before)
     pd.testing.assert_frame_equal(df_after, expect_df_after)
 
@@ -45,5 +48,37 @@ def test_select_data_by_movie_group():
                        'movieId': [1, 2, 3]})
     movie_group = [2, 3]
     expect_df = pd.DataFrame({'dummy': ['B', 'C', ], 'movieId': [2, 3, ]})
-    df = select_data_by_movie_group(df, movie_group)
+    df = process.select_data_by_movie_group(df, movie_group)
     pd.testing.assert_frame_equal(df, expect_df)
+
+
+@pytest.fixture
+def datagroup():
+    return Datagroup(ratings=pd.DataFrame({'userId': [1, 2, 3],
+                                           'movieId': [101, 102, 103],
+                                           'rating': [5, 4, 3],
+                                           'timestamp': [1112486027, 1112484727, 1094785740]}),
+                     tags=pd.DataFrame({'userId': [1, 2, 2],
+                                        'movieId': [101, 102, 103],
+                                        'tag': ['Mark Waters', 'New Zealand', 'surreal']}),
+                     movies=pd.DataFrame({'movieId': [101, 102, 103],
+                                          'title': ['A', 'B', 'C'],
+                                          'genres': [['Drama', 'Fantasy', 'Romance'],
+                                                     ['Drama', ],
+                                                     ['Fantasy', 'Romance']],
+                                          'year': [2010, 2014, 2009]}),
+                     genome=pd.DataFrame({'movieId': [101, 102, 103],
+                                          'tagId': [1001, 1001, 1001],
+                                          'relevance': [0.5, 0.4, 0.9],
+                                          'tag': ['yc', 'yc', 'yc']}),
+                     )
+
+
+def test_save_and_load_datagroup(datagroup):
+    with TemporaryDirectory(dir='tmp') as temp_dir:
+        process.save_datagroup(temp_dir, datagroup, 'test')
+        reload_datagroup = process.load_datagroup(temp_dir, 'test')
+        pd.testing.assert_frame_equal(datagroup.ratings, reload_datagroup.ratings)
+        pd.testing.assert_frame_equal(datagroup.tags, reload_datagroup.tags)
+        pd.testing.assert_frame_equal(datagroup.movies, reload_datagroup.movies)
+        pd.testing.assert_frame_equal(datagroup.genome, reload_datagroup.genome)
