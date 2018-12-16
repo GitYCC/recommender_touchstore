@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 
 from models.base import BaseModel
+from models import AverageModel
 
 
 class TestBaseModel:
@@ -46,3 +47,30 @@ class TestBaseModel:
                     r = target_dict[(u, movies[i])]
                     assert target_keep >= r
                     target_keep = r
+
+
+class TestAverageModel:
+
+    def test_fix(self, user_movie_pair_1, ratings_1):
+        model = AverageModel()
+        model.fit(user_movie_pair_1, ratings_1)
+        assert model._weighted_rating_avg[101] == 5.
+        assert model._weighted_rating_avg[102] == 1.5
+        assert model._weighted_rating_avg[103] == 3.5
+
+    def test_predict(self, user_movie_pair_1, ratings_1, user_movie_pair_2):
+        model = AverageModel()
+        model.fit(user_movie_pair_1, ratings_1)
+        pred = model.predict(user_movie_pair_2)
+        expect_pred = np.array([1.5, 5., 3.5, 5., np.nan])
+        np.testing.assert_array_equal(pred, expect_pred)
+
+    def test_recommend(self, user_movie_pair_1, ratings_1):
+        model = AverageModel()
+        model.fit(user_movie_pair_1, ratings_1)
+        rec_items = model.recommend(
+            recommended_type='movie', users=[1, 2, 3], movies=[101, 102, 103])
+        expect_rec_items = np.array([[101, 103, 102],
+                                     [101, 103, 102],
+                                     [101, 103, 102]])
+        np.testing.assert_array_equal(rec_items, expect_rec_items)
