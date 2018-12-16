@@ -77,8 +77,8 @@ Splitting raw data into public and private dataset is according to the analysis 
 
 ## Questions
 
-Q1: Design a system to predict an unknown rating when given `userId` and `movieId` (at `./src/data/test_q1.csv`). Evaluate results by RMSE.  
+Q1: Rating Problem: Design a system to predict an unknown rating when given `userId` and `movieId` (at `./src/data/test_q1.csv`). Evaluate results by RMSE.  
   
-Q2: Design a system to recommend a top-10 `movieId` list which `userId` did not see before (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10 and NDCG@10.  
+Q2: Ranking Problem: We defined that the rating >= 3.0 as a favorite movie. Design a system to recommend a top-10 favorite movies for a person, a `movieId` list which `userId` did not see before (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10.  
   
-Q3: Design a system to recommend a top-10 `userId` list to a new movie (at `./src/data/test_q3.txt`) when given some information of that new movie (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`). Evaluate results by MAP@10.  
+Q3: Content-based Problem: We defined that the rating >= 3.0 as a favorite movie. Design a system to recommend a top-10 `userId` they may like a new movie (at `./src/data/test_q3.txt`). We will give you some information of that new movie (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`). Evaluate results by MAP@10.  
