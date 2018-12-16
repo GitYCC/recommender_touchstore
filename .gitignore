@@ -118,6 +118,8 @@ venv.bak/
 */key/ssl.key
 
 # data
-prepare/*
-data/*
+prepare/*.txt
+prepare/*.csv
+data/*.txt
+data/*.csv
 tmp/*

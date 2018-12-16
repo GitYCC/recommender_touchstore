@@ -22,7 +22,7 @@ def _get_new_movies():
 def prepare_question1():
     """Prepare Question 1.
 
-    Design a system to predict an unknown rating when given `userId` and `movieId`.
+    Rating Problem: Design a system to predict an unknown rating when given `userId` and `movieId`.
 
     """
     df_ratings_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.csv'))
@@ -51,10 +51,12 @@ def prepare_question1():
 def prepare_question2():
     """Prepare Question 2.
 
-    Design a system to recommend a top-10 `movieId` list which `userId` did not see before.
+    Ranking Problem: We defined that the rating >= 3.0 as a favorite movie. Design a system to
+    recommend a top-10 favorite movies for a person, a `movieId` list which `userId` did not
+    see before (provide `userId` at `./src/data/test_q2.txt`).
 
     """
-    top_movies = 10
+    threshold_movies = 5
 
     df_ratings_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.csv'))
     df_ratings_private = pd.read_csv(os.path.join(WORKSPACE, 'ratings_prv.csv'))
@@ -65,6 +67,7 @@ def prepare_question2():
         df_ratings_public.loc[:, ('userId', 'movieId')], on=('userId', 'movieId'))
 
     selected = (
+        (df_ratings_private.rating >= 3.0) &
         df_ratings_private.userId.isin(old_users) &
         df_ratings_private.movieId.isin(old_movies) &
         ((~df_ratings_private.userId.isin(common.userId)) &
@@ -76,7 +79,7 @@ def prepare_question2():
         df
         .groupby('userId')['info']
         .apply(list)
-        .apply(lambda x: sorted(x, reverse=True)[:top_movies] if len(x) >= top_movies else np.nan)
+        .apply(lambda x: sorted(x, reverse=True) if len(x) >= threshold_movies else np.nan)
         .dropna()
         .to_dict()
     )
@@ -99,11 +102,13 @@ def prepare_question2():
 def prepare_question3():
     """Prepare Question 3.
 
-    Design a system to recommend a top-10 `userId` list to a new movie
-    when given some information of that new movie.
+    Content-based Problem: We defined that the rating >= 3.0 as a favorite movie.
+    Design a system to recommend a top-10 `userId` they may like a new movie
+    (at `./src/data/test_q3.txt`). We will give you some information of that new movie
+    (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`).
 
     """
-    top_users = 10
+    threshold_users = 5
 
     df_ratings_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.csv'))
     df_ratings_private = pd.read_csv(os.path.join(WORKSPACE, 'ratings_prv.csv'))
@@ -114,6 +119,7 @@ def prepare_question3():
         df_ratings_public.loc[:, ('userId', 'movieId')], on=('userId', 'movieId'))
 
     selected = (
+        (df_ratings_private.rating >= 3.0) &
         df_ratings_private.userId.isin(old_users) &
         df_ratings_private.movieId.isin(new_movies) &
         ((~df_ratings_private.userId.isin(common.userId)) &
@@ -125,7 +131,7 @@ def prepare_question3():
         df
         .groupby('movieId')['info']
         .apply(list)
-        .apply(lambda x: sorted(x, reverse=True)[:top_users] if len(x) >= top_users else np.nan)
+        .apply(lambda x: sorted(x, reverse=True) if len(x) >= threshold_users else np.nan)
         .dropna()
         .to_dict()
     )
