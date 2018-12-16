@@ -5,6 +5,7 @@ import process
 from process import Datagroup
 import converters
 import models
+from evaluate import Evaluator
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -51,3 +52,31 @@ def _convert_datagroup(datagroup_id, method):
     conv_class = getattr(converters, method)
     conv = conv_class()
     return (conv.convert(train_datagroup), conv.convert(valid_datagroup))
+
+
+def train(datagroup_id, convert_method, model_method, evaluate_methods, model_params=None):
+    if model_params is None:
+        model_params = dict()
+
+    tracer.start_trace('train')
+    tracer.log_param('datagroup_id', datagroup_id)
+    tracer.log_param('convert_method', convert_method)
+    tracer.log_param('model_method', model_method)
+    for key, val in model_params.items():
+        tracer.log_param(key, val)
+
+    converted_train, converted_valid = _convert_datagroup(datagroup_id, convert_method)
+    um_pair_train, y_train, u_feature_train, m_feature_train = converted_train
+    um_pair_valid, y_valid, u_feature_valid, m_feature_valid = converted_valid
+
+    model_class = getattr(models, model_method)
+    model = model_class(**model_params)
+
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train)
+
+    for evaluate_method in evaluate_methods:
+        evaluator = Evaluator(model, um_pair_valid, y_valid, u_feature_valid, m_feature_valid)
+        result = getattr(evaluator, 'get_{}'.format(evaluate_method))()
+        tracer.log_metric('valid.{}'.format(evaluate_method), result)
+
+    tracer.end_trace()
