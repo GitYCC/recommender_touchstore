@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 import yaml
 
 import mlflow
+from mlflow.tracking.fluent import active_run
 
 
 IS_LOGABLE = True
@@ -70,9 +71,7 @@ def end_trace():
 
 @_Controller
 def get_current_run_id():
-    path_root = os.path.dirname(mlflow.get_artifact_uri())
-    run_id = path_root.split('/')[-1]
-    return run_id
+    return active_run().info.run_uuid
 
 
 def get_run_id_from_param(job_name, param_dict):
