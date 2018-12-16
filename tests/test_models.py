@@ -19,6 +19,9 @@ class TestBaseModel:
         def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
             return np.sum(user_movie_pair, axis=1) % 3
 
+        def _get_params(self):
+            return dict()
+
     @pytest.fixture
     def users(self):
         return [1, 2, 3]

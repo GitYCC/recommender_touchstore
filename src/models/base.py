@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -111,3 +112,26 @@ class BaseModel(ABC):
             raise ValueError('wrong `recommended_type`')
 
         return result
+
+    @abstractmethod
+    def _get_params(self):
+        """Get parameters which determine this model.
+
+        Returns:
+            params (dict): parameters which determine this model.
+
+        """
+
+    @classmethod
+    def load(cls, path_pickle):
+        instance = object.__new__(cls)
+        with open(path_pickle, 'rb') as input_file:
+            params = pickle.load(input_file)
+            for param_name, param_val in params.items():
+                setattr(instance, param_name, param_val)
+        return instance
+
+    def save(self, path_pickle):
+        params = self._get_params()
+        with open(path_pickle, 'wb') as output_file:
+            pickle.dump(params, output_file)

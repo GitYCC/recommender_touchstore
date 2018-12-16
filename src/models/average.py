@@ -29,3 +29,8 @@ class AverageModel(BaseModel):
             ratings.append(self._weighted_rating_avg.get(m, np.nan))
 
         return np.array(ratings)
+
+    def _get_params(self):
+        params = dict()
+        params['_weighted_rating_avg'] = self._weighted_rating_avg
+        return params
