@@ -1,4 +1,6 @@
 import os
+from tempfile import TemporaryDirectory
+
 import yaml
 
 import mlflow
@@ -111,19 +113,13 @@ def load_artifact(run_id, fname):
 
 
 @_Controller
-def log_model(model_type, model, artifact_path):
-    if model_type == 'sklearn':
-        mlflow.sklearn.log_model(model, artifact_path)
-    elif model_type == 'keras':
-        mlflow.keras.log_model(model, artifact_path)
-    elif model_type == 'tensorflow':
-        mlflow.tensorflow.log_model(model, artifact_path)
+def log_model(model):
+    with TemporaryDirectory(dir='tmp') as tmp:
+        local_path = os.path.join(tmp, 'model.pkl')
+        model.save(local_path)
+        log_artifact(local_path)
 
 
-def load_model(run_id, model_type, path):
-    if model_type == 'sklearn':
-        return mlflow.sklearn.load_model(path, run_id)
-    elif model_type == 'keras':
-        return mlflow.keras.load_model(path, run_id)
-    elif model_type == 'tensorflow':
-        return mlflow.tensorflow.load_model(path, run_id)
+def load_model(run_id, model_class):
+    path = os.path.join(_get_uri_of_run(run_id), 'artifacts', 'model.pkl')
+    return model_class.load(path)
