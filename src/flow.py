@@ -1,4 +1,7 @@
 from tempfile import TemporaryDirectory
+import os
+
+import numpy as np
 
 import tracer
 import process
@@ -6,6 +9,7 @@ from process import Datagroup
 import converters
 import models
 from evaluate import Evaluator
+import config
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -112,4 +116,28 @@ def deploy(convert_method, model_method, evaluate_methods, model_params=None):
         result = getattr(evaluator, 'get_{}'.format(evaluate_method))()
         tracer.log_metric('valid.{}'.format(evaluate_method), result)
 
+    tracer.end_trace()
+
+
+def test_question1(deploy_id, model_method):
+    tracer.start_trace('test_question1')
+    tracer.log_param('deploy_id', deploy_id)
+    tracer.log_param('model_method', model_method)
+
+    model_class = getattr(models, model_method)
+    model = tracer.load_model(deploy_id, model_class)
+
+    df = process.get_question1()
+    um_pair = df[['userId', 'movieId']].values
+
+    ans = list()
+    with open(os.path.join(config.DIR_PRIVATE, 'ans_q1.txt')) as fr:
+        for line in fr.readlines():
+            ans.append(float(line.strip()))
+    ans = np.array(ans)
+
+    evaluator = Evaluator(model, um_pair, ans)
+    result = evaluator.get_rms()
+
+    tracer.log_metric('rms', result)
     tracer.end_trace()
