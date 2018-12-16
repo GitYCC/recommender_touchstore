@@ -18,8 +18,19 @@ class _Controller:
             return
 
 
-def _get_uri_of_run(run_id):
+def _get_path_mlrun():
     path_mlrun = mlflow.tracking.get_tracking_uri()
+    if os.path.exists(path_mlrun):
+        return path_mlrun
+    else:
+        return None
+
+
+def _get_uri_of_run(run_id):
+    path_mlrun = _get_path_mlrun()
+    if path_mlrun is None:
+        return None
+
     for exp_id in os.listdir(path_mlrun):
         for r in os.listdir(os.path.join(path_mlrun, exp_id)):
             if r == run_id:
@@ -28,7 +39,10 @@ def _get_uri_of_run(run_id):
 
 
 def _get_uri_of_exp(exp_name):
-    path_mlrun = mlflow.tracking.get_tracking_uri()
+    path_mlrun = _get_path_mlrun()
+    if path_mlrun is None:
+        return None
+
     for exp_id in filter(lambda x: x != '.trash', os.listdir(path_mlrun)):
         path = os.path.join(path_mlrun, exp_id, 'meta.yaml')
         with open(path, 'r') as fr:
@@ -63,6 +77,7 @@ def get_run_id_from_param(job_name, param_dict):
     path_exp = _get_uri_of_exp(job_name)
     if path_exp is None:
         return None
+
     for run_id in filter(lambda x: x != 'meta.yaml', os.listdir(path_exp)):
         is_valid = True
         for param in os.listdir(os.path.join(path_exp, run_id, 'params')):
