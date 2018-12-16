@@ -3,6 +3,8 @@ from tempfile import TemporaryDirectory
 import tracer
 import process
 from process import Datagroup
+import converters
+import models
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -40,3 +42,12 @@ def prepare_datagroup(train_start_year, valid_start_year):
     tracer.end_trace()
 
     return run_id
+
+
+def _convert_datagroup(datagroup_id, method):
+    path_datagroup = tracer.load_artifact(datagroup_id, '.')
+    train_datagroup = process.load_datagroup(path_datagroup, 'train')
+    valid_datagroup = process.load_datagroup(path_datagroup, 'valid')
+    conv_class = getattr(converters, method)
+    conv = conv_class()
+    return (conv.convert(train_datagroup), conv.convert(valid_datagroup))
