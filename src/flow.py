@@ -5,7 +5,7 @@ import process
 from process import Datagroup
 import converters
 import models
-from evaluate import Evaluator
+from evaluate import RatingEvaluator
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -75,8 +75,12 @@ def train(datagroup_id, convert_method, model_method, evaluate_methods, model_pa
     model.fit(um_pair_train, y_train, u_feature_train, m_feature_train)
 
     for evaluate_method in evaluate_methods:
-        evaluator = Evaluator(model, um_pair_valid, y_valid, u_feature_valid, m_feature_valid)
-        result = getattr(evaluator, 'get_{}'.format(evaluate_method))()
+        evaluate_method_name = 'get_{}'.format(evaluate_method)
+        if evaluate_method_name in dir(RatingEvaluator):
+            pred_y = model.predict(um_pair_valid, u_feature_valid, m_feature_valid)
+            evaluator = RatingEvaluator(um_pair_valid, y_valid, pred_y)
+            result = getattr(evaluator, evaluate_method_name)()
+
         tracer.log_metric('valid.{}'.format(evaluate_method), result)
 
     tracer.end_trace()
@@ -108,9 +112,13 @@ def deploy(convert_method, model_method, evaluate_methods, model_params=None):
     tracer.log_model(model)
 
     for evaluate_method in evaluate_methods:
-        evaluator = Evaluator(model, um_pair, y, u_feature, m_feature)
-        result = getattr(evaluator, 'get_{}'.format(evaluate_method))()
-        tracer.log_metric('valid.{}'.format(evaluate_method), result)
+        evaluate_method_name = 'get_{}'.format(evaluate_method)
+        if evaluate_method_name in dir(RatingEvaluator):
+            pred_y = model.predict(um_pair, u_feature, m_feature)
+            evaluator = RatingEvaluator(um_pair, y, pred_y)
+            result = getattr(evaluator, evaluate_method_name)()
+
+        tracer.log_metric('{}'.format(evaluate_method), result)
 
     tracer.end_trace()
 
@@ -127,8 +135,9 @@ def test_question1(deploy_id, model_method):
     um_pair = df[['userId', 'movieId']].values
 
     ans = process.get_answer1()
+    pred_ans = model.predict(um_pair)
 
-    evaluator = Evaluator(model, um_pair, ans)
+    evaluator = RatingEvaluator(um_pair, ans, pred_ans)
     result = evaluator.get_rms()
 
     tracer.log_metric('rms', result)

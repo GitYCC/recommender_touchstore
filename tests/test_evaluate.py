@@ -1,6 +1,6 @@
 import numpy as np
 
-from evaluate import Evaluator
+from evaluate import RatingEvaluator
 import config
 
 
@@ -9,11 +9,10 @@ class TestEvaluator:
         acut_y = np.array([1., 2., 3.])
         pred_y_1 = np.array([1., 2., 3.])
         pred_y_2 = np.array([3., 2., 1.])
-        model = mocker.MagicMock()
-        model.predict.return_value = pred_y_1
+
         pair = mocker.MagicMock()
-        assert (-1 * config.FLOAT_EPSILN < Evaluator(model, pair, acut_y).get_rms()
+        assert (-1 * config.FLOAT_EPSILN < RatingEvaluator(pair, acut_y, pred_y_1).get_rms()
                 < config.FLOAT_EPSILN)
-        model.predict.return_value = pred_y_2
-        assert (1.632993 - 1 * config.FLOAT_EPSILN < Evaluator(model, pair, acut_y).get_rms()
-                < 1.632993 + config.FLOAT_EPSILN)
+        assert (1.632993 - 1 * config.FLOAT_EPSILN <
+                RatingEvaluator(pair, acut_y, pred_y_2).get_rms() <
+                1.632993 + config.FLOAT_EPSILN)
