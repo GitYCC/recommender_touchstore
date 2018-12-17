@@ -49,6 +49,15 @@ def get_question1():
     return df
 
 
+def get_answer1():
+    ans = list()
+    with open(os.path.join(config.DIR_PRIVATE, 'ans_q1.txt')) as fr:
+        for line in fr.readlines():
+            ans.append(float(line.strip()))
+    ans = np.array(ans)
+    return ans
+
+
 def get_question2():
     users = dict()
     with open(os.path.join(config.DIR_DATA, 'test_q2.txt')) as fr:
@@ -56,6 +65,15 @@ def get_question2():
     df = pd.DataFrame(users, columns=['userId'])
     df['pred_movies'] = np.nan
     return df
+
+
+def get_answer2():
+    ans = list()
+    with open(os.path.join(config.DIR_PRIVATE, 'ans_q2.txt')) as fr:
+        for line in fr.readlines():
+            list_ = [int(x) for x in line.strip().split(',')]
+            ans.append(list_)
+    return ans
 
 
 def get_question3():

@@ -1,7 +1,4 @@
 from tempfile import TemporaryDirectory
-import os
-
-import numpy as np
 
 import tracer
 import process
@@ -9,7 +6,6 @@ from process import Datagroup
 import converters
 import models
 from evaluate import Evaluator
-import config
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -130,11 +126,7 @@ def test_question1(deploy_id, model_method):
     df = process.get_question1()
     um_pair = df[['userId', 'movieId']].values
 
-    ans = list()
-    with open(os.path.join(config.DIR_PRIVATE, 'ans_q1.txt')) as fr:
-        for line in fr.readlines():
-            ans.append(float(line.strip()))
-    ans = np.array(ans)
+    ans = process.get_answer1()
 
     evaluator = Evaluator(model, um_pair, ans)
     result = evaluator.get_rms()
