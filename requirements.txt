@@ -20,3 +20,8 @@ mlflow==0.8.0
 six==1.11.0
 progressbar2==3.38.0
 pyyaml==3.13
+
+### test
+pytest==4.0.2
+pytest-cov==2.6.0
+pytest-mock==1.10.0
