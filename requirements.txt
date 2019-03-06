@@ -18,8 +18,8 @@ mlflow==0.8.0
 
 ### other
 six==1.11.0
-progressbar2==3.38.0
 pyyaml==3.13
+tqdm==4.28.1
 
 ### test
 pytest==4.0.2
