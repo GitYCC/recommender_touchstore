@@ -1,6 +1,7 @@
 # user custom files
 .vscode
 .DS_Store
+Pipfile*
 
 # proto related files
 *_pb2.py
