@@ -15,9 +15,9 @@ class BaseConverter(ABC):
                 Pair of userId and movieId, where n_samples is the number of samples.
             y (array-like, shape (n_samples,)):
                 Target relative to user_movie_pair.
-            user_feature (array-like, shape (n_userId, n_user_feature)):
+            user_feature (pandas.Dataframe or None):
                 Given more feature content about user. If no user_feature, return None.
-            movie_feature (array-like, shape (n_movieId, n_movie_feature)):
+            movie_feature (pandas.Dataframe or None):
                 Given more feature content about movie. If no movie_feature, return None.
 
         """
