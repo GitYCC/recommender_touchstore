@@ -92,6 +92,15 @@ def get_question3_ref():
     return df_ref_movies, df_ref_genome
 
 
+def get_answer3():
+    ans = list()
+    with open(os.path.join(config.DIR_PRIVATE, 'ans_q3.txt')) as fr:
+        for line in fr.readlines():
+            list_ = [int(x) for x in line.strip().split(',')]
+            ans.append(list_)
+    return ans
+
+
 def _dt2ts(dt):
     timestamp = int((dt - datetime(1970, 1, 1)).total_seconds())
     return timestamp
