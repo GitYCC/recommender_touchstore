@@ -1,5 +1,6 @@
 import os
 from tempfile import TemporaryDirectory
+from pathlib import Path
 
 import yaml
 
@@ -21,38 +22,85 @@ class _Controller:
             return
 
 
-def _get_path_mlrun():
-    path_mlrun = mlflow.tracking.get_tracking_uri()
-    if os.path.exists(path_mlrun):
-        return path_mlrun
-    else:
+class _MLFlowPath:
+    def __init__(self):
+        self.path_mlrun = self._get_path_mlrun()
+        self.exp_info = self._get_exp_info(self.path_mlrun)
+        self.run_info = self._get_run_info(self.exp_info)
+
+    def _get_path_mlrun(self):
+        path_mlrun = mlflow.tracking.get_tracking_uri()
+        if os.path.exists(path_mlrun):
+            return Path(path_mlrun)
+        else:
+            return None
+
+    def _get_exp_info(self, path_mlrun):
+        if path_mlrun is None:
+            return None
+
+        def is_int(x):
+            try:
+                x = int(x)
+            except ValueError:
+                return False
+            return True
+        paths = [child for child in path_mlrun.iterdir() if is_int(child.name)]
+
+        exp_info = dict()
+        for exp_path in paths:
+            info = dict()
+            info['path'] = exp_path
+            info['runs'] = [child.name for child in exp_path.iterdir()
+                            if child.is_dir() and len(child.name) == 32]
+
+            path_meta = exp_path / 'meta.yaml'
+            name = None
+            with path_meta.open('r') as fr:
+                name = yaml.load(fr)['name']
+            exp_info[name] = info
+        return exp_info
+
+    def _get_run_info(self, exp_info):
+        if exp_info is None:
+            return None
+
+        run_info = dict()
+        for exp_name, exp_info in exp_info.items():
+            for run_id in exp_info['runs']:
+                info = dict()
+
+                info['parent_exp'] = exp_name
+
+                run_path = exp_info['path'] / run_id
+                info['path'] = run_path
+
+                params_paths = [child for child in (run_path / 'params').iterdir()]
+                params_list = [(p.name, p.open('r').readline().strip()) for p in params_paths]
+                info['params'] = sorted(params_list)
+
+                run_info[run_id] = info
+        return run_info
+
+    def get_path_of_exp(self, exp_name):
+        if self.exp_info is None:
+            return None
+        return self.exp_info[exp_name]['path']
+
+    def get_path_of_run(self, run_id):
+        if self.run_info is None:
+            return None
+        return self.run_info[run_id]['path']
+
+    def get_run_id_from_param(self, exp_name, param_dict):
+        if self.run_info is None:
+            return None
+
+        param_list = sorted([(name, str(val)) for name, val in param_dict.items()])
+        for run_id, info in self.run_info.items():
+            if info['parent_exp'] == exp_name and info['params'] == param_list:
+                return run_id
         return None
-
-
-def _get_uri_of_run(run_id):
-    path_mlrun = _get_path_mlrun()
-    if path_mlrun is None:
-        return None
-
-    for exp_id in os.listdir(path_mlrun):
-        for r in os.listdir(os.path.join(path_mlrun, exp_id)):
-            if r == run_id:
-                return os.path.join(path_mlrun, exp_id, run_id)
-    return None
-
-
-def _get_uri_of_exp(exp_name):
-    path_mlrun = _get_path_mlrun()
-    if path_mlrun is None:
-        return None
-
-    for exp_id in filter(lambda x: x != '.trash', os.listdir(path_mlrun)):
-        path = os.path.join(path_mlrun, exp_id, 'meta.yaml')
-        with open(path, 'r') as fr:
-            name = yaml.load(fr)['name']
-            if exp_name == name:
-                return os.path.join(path_mlrun, exp_id)
-    return None
 
 
 @_Controller
@@ -75,26 +123,18 @@ def get_current_run_id():
 
 
 def get_run_id_from_param(job_name, param_dict):
-    path_exp = _get_uri_of_exp(job_name)
-    if path_exp is None:
-        return None
-
-    for run_id in filter(lambda x: x != 'meta.yaml', os.listdir(path_exp)):
-        is_valid = True
-        for param in os.listdir(os.path.join(path_exp, run_id, 'params')):
-            val = (open(os.path.join(path_exp, run_id, 'params', param), 'r')
-                   .readline().strip())
-            if str(param_dict[param]) != val:
-                is_valid = False
-                break
-        if is_valid:
-            return run_id
-    return None
+    return _MLFlowPath().get_run_id_from_param(job_name, param_dict)
 
 
 @_Controller
 def log_param(key, val):
     mlflow.log_param(key, val)
+
+
+def load_params(run_id):
+    param_list = _MLFlowPath().run_info[run_id]['params']
+    param_dict = {key: val for key, val in param_list}
+    return param_dict
 
 
 @_Controller
@@ -107,8 +147,8 @@ def log_artifact(fname):
     mlflow.log_artifact(fname)
 
 
-def load_artifact(run_id, fname):
-    return os.path.join(_get_uri_of_run(run_id), 'artifacts', fname)
+def get_artifact_path(run_id, fname):
+    return _MLFlowPath().get_path_of_run(run_id) / 'artifacts' / fname
 
 
 @_Controller
@@ -120,5 +160,5 @@ def log_model(model):
 
 
 def load_model(run_id, model_class):
-    path = os.path.join(_get_uri_of_run(run_id), 'artifacts', 'model.pkl')
+    path = _MLFlowPath().get_path_of_run(run_id) / 'artifacts' / 'model.pkl'
     return model_class.load(path)
