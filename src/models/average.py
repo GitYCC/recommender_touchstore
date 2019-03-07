@@ -1,6 +1,6 @@
 import numpy as np
 
-from .base import BaseModel
+from .model import BaseModel
 
 
 class AverageModel(BaseModel):
@@ -24,11 +24,8 @@ class AverageModel(BaseModel):
         return self
 
     def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
-        ratings = list()
-        for i, (u, m) in enumerate(user_movie_pair.tolist()):
-            ratings.append(self._weighted_rating_avg.get(m, np.nan))
-
-        return np.array(ratings)
+        vfunc = np.vectorize(lambda x: self._weighted_rating_avg.get(x, np.nan))
+        return vfunc(user_movie_pair[:, 1])
 
     def _get_params(self):
         params = dict()
