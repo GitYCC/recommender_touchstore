@@ -3,7 +3,7 @@ import sys
 import pytest
 import numpy as np
 
-from models.base import BaseModel
+from models.model import BaseModel
 from models import AverageModel
 
 
@@ -20,36 +20,49 @@ class TestBaseModel:
             return np.sum(user_movie_pair, axis=1) % 3
 
         def _get_params(self):
-            return dict()
+            return dict(paraA=self.paraA, paraB=self.paraB)
 
     @pytest.fixture
     def users(self):
-        return [1, 2, 3]
+        return [1, 2, 3, 4]
 
     @pytest.fixture
     def movies(self):
-        return [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        return [11, 12, 13, 14, 15]
 
-    @pytest.mark.parametrize('recommended_type', ['movie', 'user'])
-    def test_recommend(self, recommended_type, users, movies):
+    @pytest.mark.parametrize('recommended_type, maxsize', [('movie', None), ('user', None),
+                                                           ('movie', 3), ('user', 3)])
+    def test_recommend(self, users, movies, recommended_type, maxsize):
         model = self.MockModel()
-        result = model.recommend(recommended_type, users, movies)
+        rec_items, rec_scores = model.recommend(recommended_type, users, movies, maxsize=maxsize)
 
         target_dict = {(u, m): (u+m) % 3 for u in users for m in movies}
         if recommended_type == 'movie':
-            for i, sample in enumerate(result.tolist()):
+            for i, sample in enumerate(rec_items.tolist()):
                 target_keep = sys.maxsize
-                for m in sample:
+                for j, m in enumerate(sample):
                     r = target_dict[(users[i], m)]
+                    assert rec_scores[i, j] == r
                     assert target_keep >= r
                     target_keep = r
         elif recommended_type == 'user':
-            for i, sample in enumerate(result.tolist()):
+            for i, sample in enumerate(rec_items.tolist()):
                 target_keep = sys.maxsize
-                for u in sample:
+                for j, u in enumerate(sample):
                     r = target_dict[(u, movies[i])]
+                    assert rec_scores[i, j] == r
                     assert target_keep >= r
                     target_keep = r
+
+    def test_save_and_load(self, tmp_path):
+        model = self.MockModel()
+        model.paraA = 1
+        model.paraB = 2
+        output_path = tmp_path / 'model.p'
+        model.save(output_path)
+        reloaded_model = self.MockModel.load(output_path)
+        assert reloaded_model.paraA == model.paraA
+        assert reloaded_model.paraB == model.paraB
 
 
 class TestAverageModel:
@@ -71,9 +84,13 @@ class TestAverageModel:
     def test_recommend(self, user_movie_pair_1, ratings_1):
         model = AverageModel()
         model.fit(user_movie_pair_1, ratings_1)
-        rec_items = model.recommend(
+        rec_items, rec_scores = model.recommend(
             recommended_type='movie', users=[1, 2, 3], movies=[101, 102, 103])
-        expect_rec_items = np.array([[101, 103, 102],
-                                     [101, 103, 102],
-                                     [101, 103, 102]])
-        np.testing.assert_array_equal(rec_items, expect_rec_items)
+        expected_rec_items = np.array([[101, 103, 102],
+                                       [101, 103, 102],
+                                       [101, 103, 102]])
+        expected_rec_scores = np.array([[5., 3.5, 1.5],
+                                        [5., 3.5, 1.5],
+                                        [5., 3.5, 1.5]])
+        np.testing.assert_array_equal(rec_items, expected_rec_items)
+        np.testing.assert_array_equal(rec_scores, expected_rec_scores)

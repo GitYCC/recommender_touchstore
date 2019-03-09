@@ -2,7 +2,7 @@ import os
 import zipfile
 import hashlib
 
-from progressbar import ProgressBar
+from tqdm import tqdm
 from six.moves.urllib.request import urlretrieve
 
 WORKSPACE = os.path.dirname(__file__)
@@ -14,13 +14,13 @@ progressbar = [None]
 
 def _show_progress(count, block_size, total_size):
     if progressbar[0] is None:
-        progressbar[0] = ProgressBar(maxval=total_size)
+        progressbar[0] = tqdm(total=total_size)
 
     downloaded = block_size * count
     if downloaded <= total_size:
-        progressbar[0].update(downloaded)
+        progressbar[0].update(block_size)
     else:
-        progressbar[0].finish()
+        progressbar[0].close()
         progressbar[0] = None
 
 

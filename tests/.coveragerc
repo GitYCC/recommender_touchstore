@@ -1,6 +1,8 @@
 [run]
 omit =
     src/config.py
+    src/tracer.py
+    src/main.py
 [report]
 exclude_lines =
     if __name__ == .__main__.:
