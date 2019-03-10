@@ -5,7 +5,7 @@ def main():
     train_start_year = 2011
     valid_start_year = 2012
     convert_method = 'NoContentConverter'
-    model_method = 'AverageModel'
+    model_method = 'PopularityModel'
     topic = 'question2'
 
     datagroup_id = flow.prepare_datagroup(train_start_year, valid_start_year)

@@ -1,3 +1,3 @@
-from .average import AverageModel
+from .popularity import PopularityModel
 
-__all__ = [AverageModel]
+__all__ = [PopularityModel]

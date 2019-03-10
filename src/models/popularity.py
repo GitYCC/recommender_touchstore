@@ -3,7 +3,7 @@ import numpy as np
 from .model import BaseModel
 
 
-class AverageModel(BaseModel):
+class PopularityModel(BaseModel):
     def __init__(self):
         self._weighted_rating_avg = dict()
 
