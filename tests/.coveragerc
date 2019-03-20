@@ -2,6 +2,7 @@
 omit =
     src/config.py
     src/tracer.py
+    src/flow.py
     src/main.py
 [report]
 exclude_lines =
