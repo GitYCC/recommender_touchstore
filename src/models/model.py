@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import pickle
 
 import numpy as np
 import pandas as pd
@@ -162,25 +161,21 @@ class BaseModel(ABC):
 
         return (rec_items, rec_scores)
 
+    @classmethod
     @abstractmethod
-    def _get_params(self):
-        """Get parameters which determine this model.
+    def load(cls, local_dir):
+        """Load model.
 
-        Returns:
-            params (dict): parameters which determine this model.
+        Args:
+            local_dir (pathlib.Path): Directory of loading.
 
         """
 
-    @classmethod
-    def load(cls, path_pickle):
-        instance = object.__new__(cls)
-        with open(path_pickle, 'rb') as input_file:
-            params = pickle.load(input_file)
-            for param_name, param_val in params.items():
-                setattr(instance, param_name, param_val)
-        return instance
+    @abstractmethod
+    def save(self, local_dir):
+        """Save model.
 
-    def save(self, path_pickle):
-        params = self._get_params()
-        with open(path_pickle, 'wb') as output_file:
-            pickle.dump(params, output_file)
+        Args:
+            local_dir (pathlib.Path): Directory of saving.
+
+        """

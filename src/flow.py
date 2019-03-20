@@ -251,7 +251,7 @@ def test(deploy_id):
     tracer.log_param('deploy_id', deploy_id)
 
     deploy_params = tracer.load_params(deploy_id)
-    print(deploy_params)
+
     model_method = deploy_params['model_method']
     topic = deploy_params['topic']
     convert_method = deploy_params['convert_method']

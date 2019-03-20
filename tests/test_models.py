@@ -19,8 +19,12 @@ class TestBaseModel:
         def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
             return np.sum(user_movie_pair, axis=1) % 3
 
-        def _get_params(self):
-            return dict(paraA=self.paraA, paraB=self.paraB)
+        @classmethod
+        def load(cls, local_dir):
+            pass
+
+        def save(self, local_dir):
+            pass
 
     @pytest.fixture
     def users(self):
@@ -54,16 +58,6 @@ class TestBaseModel:
                     assert target_keep >= r
                     target_keep = r
 
-    def test_save_and_load(self, tmp_path):
-        model = self.MockModel()
-        model.paraA = 1
-        model.paraB = 2
-        output_path = tmp_path / 'model.p'
-        model.save(output_path)
-        reloaded_model = self.MockModel.load(output_path)
-        assert reloaded_model.paraA == model.paraA
-        assert reloaded_model.paraB == model.paraB
-
 
 class TestPopularityModel:
 
@@ -94,3 +88,10 @@ class TestPopularityModel:
                                         [5., 3.5, 1.5]])
         np.testing.assert_array_equal(rec_items, expected_rec_items)
         np.testing.assert_array_equal(rec_scores, expected_rec_scores)
+
+    def test_save_and_load(self, tmpdir):
+        model = PopularityModel()
+        model._weighted_rating_avg = {1: 0.2, 2: 0.5}
+        model.save(tmpdir)
+        reloaded_model = PopularityModel.load(tmpdir)
+        assert reloaded_model._weighted_rating_avg == model._weighted_rating_avg

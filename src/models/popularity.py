@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 
 from .model import BaseModel
@@ -27,7 +29,20 @@ class PopularityModel(BaseModel):
         vfunc = np.vectorize(lambda x: self._weighted_rating_avg.get(x, np.nan))
         return vfunc(user_movie_pair[:, 1])
 
-    def _get_params(self):
+    @classmethod
+    def load(cls, local_dir):
+        instance = object.__new__(cls)
+        path_pickle = local_dir / 'model.pkl'
+        with open(path_pickle, 'rb') as input_file:
+            params = pickle.load(input_file)
+            for param_name, param_val in params.items():
+                setattr(instance, param_name, param_val)
+        return instance
+
+    def save(self, local_dir):
         params = dict()
         params['_weighted_rating_avg'] = self._weighted_rating_avg
-        return params
+
+        path_pickle = local_dir / 'model.pkl'
+        with open(path_pickle, 'wb') as output_file:
+            pickle.dump(params, output_file)
