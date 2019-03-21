@@ -13,7 +13,7 @@ class TestBaseModel:
         """MockModel implements BaseModel."""
 
         def fit(self, user_movie_pair, y,
-                user_feature=None, movie_feature=None, sample_weight=None):
+                user_feature=None, movie_feature=None):
             pass
 
         def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
@@ -64,9 +64,9 @@ class TestPopularityModel:
     def test_fix(self, user_movie_pair_1, ratings_1):
         model = PopularityModel()
         model.fit(user_movie_pair_1, ratings_1)
-        assert model._weighted_rating_avg[101] == 5.
-        assert model._weighted_rating_avg[102] == 1.5
-        assert model._weighted_rating_avg[103] == 3.5
+        assert model._rating_avg[101] == 5.
+        assert model._rating_avg[102] == 1.5
+        assert model._rating_avg[103] == 3.5
 
     def test_predict(self, user_movie_pair_1, ratings_1, user_movie_pair_2):
         model = PopularityModel()
@@ -91,7 +91,7 @@ class TestPopularityModel:
 
     def test_save_and_load(self, tmpdir):
         model = PopularityModel()
-        model._weighted_rating_avg = {1: 0.2, 2: 0.5}
+        model._rating_avg = {1: 0.2, 2: 0.5}
         model.save(tmpdir)
         reloaded_model = PopularityModel.load(tmpdir)
-        assert reloaded_model._weighted_rating_avg == model._weighted_rating_avg
+        assert reloaded_model._rating_avg == model._rating_avg

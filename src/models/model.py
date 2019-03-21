@@ -8,7 +8,7 @@ from tqdm import tqdm
 class BaseModel(ABC):
 
     @abstractmethod
-    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None, sample_weight=None):
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None):
         """Fit the model according to the given training data.
 
         Args:
@@ -20,9 +20,6 @@ class BaseModel(ABC):
                 Given more feature content about user.
             movie_feature (pandas.Dataframe, optional):
                 Given more feature content about movie.
-            sample_weight (array-like, shape (n_samples,), optional):
-                Array of weights that are assigned to individual samples.
-                If not provided, then each sample is given unit weight.
 
         Returns:
             self (object)
