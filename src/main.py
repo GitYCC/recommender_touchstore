@@ -5,11 +5,12 @@ def main():
     train_start_year = 2011
     valid_start_year = 2012
     convert_method = 'NoContentConverter'
-    model_method = 'ItemCosineSimilarity'
-    topic = 'question1'
-    model_params = {
-        'similarity_theshold': 0.5,
-    }
+    model_method = 'PopularityModel'
+    topic = 'question2'
+    model_params = None
+    # model_params = {
+    #     'similarity_theshold': 0.5,
+    # }
 
     datagroup_id = flow.prepare_datagroup(train_start_year, valid_start_year)
     flow.train(datagroup_id, convert_method, model_method, topic, model_params=model_params)

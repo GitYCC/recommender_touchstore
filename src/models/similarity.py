@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
@@ -5,6 +7,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 
 from .model import BaseModel
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class ItemCosineSimilarity(BaseModel):
@@ -24,6 +32,8 @@ class ItemCosineSimilarity(BaseModel):
         df.movieId = df.movieId.astype('int32')
 
         # indexize
+        logger.info('indexize')
+
         df_user_id = df[['userId']].drop_duplicates()
         df_user_id['user_index'] = np.array(list(range(df_user_id.shape[0])))
 
@@ -35,6 +45,8 @@ class ItemCosineSimilarity(BaseModel):
         df = df[['user_index', 'movie_index', 'y']]
 
         # mean centering
+        logger.info('mean centering')
+
         df_avg_y = df[['movie_index', 'y']] \
             .groupby('movie_index', as_index=False, sort=False).mean() \
             .rename(columns={'y': 'avg_y'})
@@ -44,19 +56,25 @@ class ItemCosineSimilarity(BaseModel):
         df = df[['user_index', 'movie_index', 'mean_centering_y']]
 
         # calculate item similarity
+        logger.info('calculate item similarity step 1: cosine')
+
         sparse_mat = coo_matrix((df.mean_centering_y, (df.movie_index, df.user_index)))
         similarities_sparse = cosine_similarity(sparse_mat, dense_output=False).todok()
+
+        logger.info('calculate item similarity step 2: filter by threshold {}' \
+                    .format(similarity_theshold))
 
         similarity_content = []
         for (movie_index, reference), rating in tqdm(similarities_sparse.items()):
             if abs(rating) > similarity_theshold:
                 similarity_content.append((movie_index, reference, rating))
-
         df_similarity = pd.DataFrame(
             similarity_content,
             columns=['movie_index', 'reference_movie_index', 'sim'])
 
         # calculate relative rating
+        logger.info('calculate relative rating')
+
         df = pd.merge(df, df_similarity, how='right', on='movie_index')
         df = df[['user_index', 'reference_movie_index', 'mean_centering_y', 'sim']] \
             .rename(columns={'reference_movie_index': 'movie_index'})
@@ -67,11 +85,15 @@ class ItemCosineSimilarity(BaseModel):
         df = df[['user_index', 'movie_index', 'relative_rating']]
 
         # calculate rating
+        logger.info('calculate rating')
+
         df = pd.merge(df, df_avg_y, on='movie_index')
         df['rating'] = df['relative_rating'] + df['avg_y']
         df = df[['user_index', 'movie_index', 'rating']]
 
         # back by indexer
+        logger.info('back by indexer')
+
         df = pd.merge(df, df_user_id, on='user_index')
         df = pd.merge(df, df_movie_id, on='movie_index')
         df = df[['userId', 'movieId', 'rating']]

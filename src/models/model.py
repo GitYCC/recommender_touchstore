@@ -1,8 +1,15 @@
+import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class BaseModel(ABC):
@@ -139,7 +146,7 @@ class BaseModel(ABC):
         batch_num = 100
 
         if recommended_type == 'movie':
-            print('recommend movies:')
+            logger.info('recommend movies:')
             user_num = len(users)
             with tqdm(total=user_num) as pbar:
                 for i in range(1+user_num//batch_num):
@@ -157,7 +164,7 @@ class BaseModel(ABC):
             assert rec_scores.shape[0] == len(users)
 
         elif recommended_type == 'user':
-            print('recommend users:')
+            logger.info('recommend users:')
             movie_num = len(movies)
             with tqdm(total=movie_num) as pbar:
                 for i in range(1+movie_num//batch_num):
