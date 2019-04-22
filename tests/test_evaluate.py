@@ -37,3 +37,18 @@ class TestRecommendEvaluator:
 
         mean_ap = evaluator.get_mean_average_precision(size=None)
         assert 0.5 - config.FLOAT_EPSILN < mean_ap < 0.5 + config.FLOAT_EPSILN
+
+    def test_get_mean_average_precision__have_nan__right_mean_ap(self, mocker):
+        target = [1, 2, 3]
+        actions = [[101], [103, 101], [104]]
+        recommendations = np.array([[102, 101, 103, np.nan],
+                                    [103, 102, 101, np.nan],
+                                    [103, 102, 101, np.nan]])
+        rec_scores = np.array([[0.5, 0.4, 0.3, np.nan],
+                               [0.8, 0.5, 0.1, np.nan],
+                               [0.8, 0.5, 0.1, np.nan]])
+
+        evaluator = RecommendEvaluator(target, actions,  recommendations, rec_scores)
+
+        mean_ap = evaluator.get_mean_average_precision(size=None)
+        assert 0.444444 - config.FLOAT_EPSILN < mean_ap < 0.444444 + config.FLOAT_EPSILN

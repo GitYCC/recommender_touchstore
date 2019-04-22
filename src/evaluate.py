@@ -33,36 +33,34 @@ class RatingEvaluator:
 
 class RecommendEvaluator:
 
-    def __init__(self, target, actions, recommendations, rec_scores):
+    def __init__(self, targets, actions, recommendations, rec_scores):
 
-        self._target = target
+        self._targets = targets
         self._actions = actions
         self._recommendations = recommendations
         self._rec_scores = rec_scores
 
     def get_mean_average_precision(self, size=None):
-        if size is None:
-            size = self._recommendations.shape[1]
-
-        num_target = len(self._target)
-
-        selected_recs = self._recommendations[:, 0:size]
-        selected_rec_scores = self._rec_scores[:, 0:size]
-
-        true_scores = np.zeros(selected_rec_scores.shape, dtype='float64')
-        for i in range(num_target):
-            label = np.isin(selected_recs[i, :], self._actions[i])
-            true_scores[i, label] = 1
+        rec_list = [[i for i in sub if not np.isnan(i)] for sub in self._recommendations.tolist()]
+        rec_scores_list = \
+            [[i for i in sub if not np.isnan(i)] for sub in self._rec_scores.tolist()]
 
         tot_ap = 0.0
-        for i in range(num_target):
-            y_true = true_scores[i, :]
-            y_score = selected_rec_scores[i, :]
-            if np.sum(y_true) < config.FLOAT_EPSILN:
+        for target, action, rec, rec_score \
+                in zip(self._targets, self._actions, rec_list, rec_scores_list):
+            assert len(rec) == len(rec_score)
+            rec_true = [(1 if i in action else 0) for i in rec]
+
+            if size:
+                rec_true = rec_true[:size]
+                rec_score = rec_score[:size]
+
+            if np.sum(rec_true) < config.FLOAT_EPSILN:
                 ap = 0.0
             else:
-                ap = average_precision_score(y_true, y_score)
+                ap = average_precision_score(rec_true, rec_score)
             tot_ap += ap
-        mean_ap = tot_ap / num_target
+
+        mean_ap = tot_ap / len(self._targets)
 
         return mean_ap
