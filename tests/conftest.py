@@ -1,12 +1,12 @@
 import sys
 
-sys.path.insert(0, 'src')
-
 import pytest
 import numpy as np
 import pandas as pd
 
 from process import Datagroup
+
+sys.path.insert(0, 'src')
 
 
 @pytest.fixture

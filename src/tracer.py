@@ -3,7 +3,6 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import yaml
-
 import mlflow
 from mlflow.tracking.fluent import active_run
 
