@@ -59,7 +59,8 @@ class BaseModel(ABC):
 
         if maxsize is None:
             maxsize = len(movies)
-        df_table['rank'] = df_table['predicted'].rank(ascending=False, method='first')
+        df_table['rank'] = df_table.groupby('userId', as_index=False, sort=False)['predicted'] \
+                                   .rank(ascending=False, method='first')
         df_table = df_table[df_table['rank'] <= maxsize]
 
         rec_items = np.full([len(users), maxsize], None, dtype='float64')
@@ -92,7 +93,8 @@ class BaseModel(ABC):
 
         if maxsize is None:
             maxsize = len(users)
-        df_table['rank'] = df_table['predicted'].rank(ascending=False, method='first')
+        df_table['rank'] = df_table.groupby('movieId', as_index=False, sort=False)['predicted'] \
+                                   .rank(ascending=False, method='first')
         df_table = df_table[df_table['rank'] <= maxsize]
 
         rec_items = np.full([len(movies), maxsize], None, dtype='float64')
@@ -143,7 +145,7 @@ class BaseModel(ABC):
                 for i in range(1+user_num//batch_num):
                     start, end = i * batch_num, min((i+1) * batch_num, user_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_users(
-                        users[start:end], movies, maxsize, user_feature, movie_feature)
+                        users[start:end], movies, user_feature, movie_feature, maxsize)
                     if rec_items is None and rec_scores is None:
                         rec_items, rec_scores = sub_rec_items, sub_rec_scores
                     else:
@@ -160,8 +162,8 @@ class BaseModel(ABC):
             with tqdm(total=movie_num) as pbar:
                 for i in range(1+movie_num//batch_num):
                     start, end = i * batch_num, min((i+1) * batch_num, movie_num)
-                    sub_rec_items, sub_rec_scores = self._recommend_for_one_movie(
-                        movies[start:end], users, maxsize, user_feature, movie_feature)
+                    sub_rec_items, sub_rec_scores = self._recommend_for_movies(
+                        movies[start:end], users, user_feature, movie_feature, maxsize)
                     if rec_items is None and rec_scores is None:
                         rec_items, rec_scores = sub_rec_items, sub_rec_scores
                     else:
