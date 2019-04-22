@@ -2,9 +2,11 @@ import sys
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from models.model import BaseModel
 from models import PopularityModel
+from models import ItemCosineSimilarity
 
 
 class TestBaseModel:
@@ -103,3 +105,42 @@ class TestPopularityModel:
         model.save(tmpdir)
         reloaded_model = PopularityModel.load(tmpdir)
         assert reloaded_model._rating_avg == model._rating_avg
+
+
+class TestCosineSimilarity:
+
+    def test_fit__use_case1__right_avg_y(self, user_movie_pair_1, ratings_1):
+        model = ItemCosineSimilarity()
+
+        model = model.fit(user_movie_pair_1, ratings_1)
+
+        expected_avg_y_list = [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]]
+
+        assert sorted(model._df_avg_y.values.tolist()) == sorted(expected_avg_y_list)
+
+    def test_predict__use_case1_predict_opp__right_ratings(
+            self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
+        model = ItemCosineSimilarity()
+        model.fit(user_movie_pair_1, ratings_1)
+
+        pred = model.predict(user_movie_pair_1_opp)
+
+        expected_pred_list = [4., 5.5, 5., 1., 3., 5., 1., 4.5, 5., 3.75, 1., 2.]
+
+        assert pred.tolist() == expected_pred_list
+
+    def test_save_and_load__do__restore(self, tmpdir):
+        model = ItemCosineSimilarity()
+        model._df_ratings = pd.DataFrame(
+            [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]],
+            columns=['movieId', 'avg_y'],
+        )
+        model._df_avg_y = pd.DataFrame(
+            [[1, 100, 2.], [2, 102, 3.], [3, 105, 5.]],
+            columns=['userId', 'movieId', 'rating'],
+        )
+        model.save(tmpdir)
+        reloaded_model = ItemCosineSimilarity.load(tmpdir)
+
+        pd.testing.assert_frame_equal(reloaded_model._df_ratings, model._df_ratings)
+        pd.testing.assert_frame_equal(reloaded_model._df_avg_y, model._df_avg_y)
