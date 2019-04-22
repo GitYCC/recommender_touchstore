@@ -8,7 +8,7 @@ from tqdm import tqdm
 class BaseModel(ABC):
 
     @abstractmethod
-    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None):
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None, **model_params):
         """Fit the model according to the given training data.
 
         Args:
