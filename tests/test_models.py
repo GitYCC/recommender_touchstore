@@ -2,9 +2,11 @@ import sys
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from models.model import BaseModel
-from models import AverageModel
+from models import PopularityModel
+from models import ItemCosineSimilarity
 
 
 class TestBaseModel:
@@ -13,14 +15,18 @@ class TestBaseModel:
         """MockModel implements BaseModel."""
 
         def fit(self, user_movie_pair, y,
-                user_feature=None, movie_feature=None, sample_weight=None):
+                user_feature=None, movie_feature=None, **model_params):
             pass
 
         def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
             return np.sum(user_movie_pair, axis=1) % 3
 
-        def _get_params(self):
-            return dict(paraA=self.paraA, paraB=self.paraB)
+        @classmethod
+        def load(cls, local_dir):
+            pass
+
+        def save(self, local_dir):
+            pass
 
     @pytest.fixture
     def users(self):
@@ -32,7 +38,7 @@ class TestBaseModel:
 
     @pytest.mark.parametrize('recommended_type, maxsize', [('movie', None), ('user', None),
                                                            ('movie', 3), ('user', 3)])
-    def test_recommend(self, users, movies, recommended_type, maxsize):
+    def test_recommend__mock__right_order(self, users, movies, recommended_type, maxsize):
         model = self.MockModel()
         rec_items, rec_scores = model.recommend(recommended_type, users, movies, maxsize=maxsize)
 
@@ -54,43 +60,87 @@ class TestBaseModel:
                     assert target_keep >= r
                     target_keep = r
 
-    def test_save_and_load(self, tmp_path):
-        model = self.MockModel()
-        model.paraA = 1
-        model.paraB = 2
-        output_path = tmp_path / 'model.p'
-        model.save(output_path)
-        reloaded_model = self.MockModel.load(output_path)
-        assert reloaded_model.paraA == model.paraA
-        assert reloaded_model.paraB == model.paraB
 
+class TestPopularityModel:
+    case1_movie_popularity = {100: 3., 101: 1., 102: 3., 103: 2., 104: 4.5, 105: 5.}
 
-class TestAverageModel:
+    def test_fit__use_case1__right_rating_avg(self, user_movie_pair_1, ratings_1):
+        model = PopularityModel()
 
-    def test_fix(self, user_movie_pair_1, ratings_1):
-        model = AverageModel()
+        model = model.fit(user_movie_pair_1, ratings_1)
+
+        for movie in [100, 101, 102, 103, 104, 105]:
+            assert model._rating_avg[movie] == self.case1_movie_popularity[movie]
+
+    def test_predict__use_case1_predict_opp__right_ratings(
+            self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
+        model = PopularityModel()
         model.fit(user_movie_pair_1, ratings_1)
-        assert model._weighted_rating_avg[101] == 5.
-        assert model._weighted_rating_avg[102] == 1.5
-        assert model._weighted_rating_avg[103] == 3.5
 
-    def test_predict(self, user_movie_pair_1, ratings_1, user_movie_pair_2):
-        model = AverageModel()
-        model.fit(user_movie_pair_1, ratings_1)
-        pred = model.predict(user_movie_pair_2)
-        expect_pred = np.array([1.5, 5., 3.5, 5., np.nan])
-        np.testing.assert_array_equal(pred, expect_pred)
+        pred = model.predict(user_movie_pair_1_opp)
 
-    def test_recommend(self, user_movie_pair_1, ratings_1):
-        model = AverageModel()
+        expected_pred = np.array(
+            [self.case1_movie_popularity[movie] for _, movie in user_movie_pair_1_opp.tolist()])
+        np.testing.assert_array_equal(pred, expected_pred)
+
+    def test_recommend__use_case1__right_items_and_scores(self, user_movie_pair_1, ratings_1):
+        model = PopularityModel()
         model.fit(user_movie_pair_1, ratings_1)
+
+        users = [0, 1, 2, 3, 4]
+        expected_movie_order = [105, 104, 102, 103, 101]
         rec_items, rec_scores = model.recommend(
-            recommended_type='movie', users=[1, 2, 3], movies=[101, 102, 103])
-        expected_rec_items = np.array([[101, 103, 102],
-                                       [101, 103, 102],
-                                       [101, 103, 102]])
-        expected_rec_scores = np.array([[5., 3.5, 1.5],
-                                        [5., 3.5, 1.5],
-                                        [5., 3.5, 1.5]])
+            recommended_type='movie',
+            users=users,
+            movies=sorted(expected_movie_order))
+
+        expected_rec_items = np.array([expected_movie_order for _ in range(len(users))])
+        expected_rec_scores = np.array([[5., 4.5, 3., 2., 1.] for _ in range(len(users))])
         np.testing.assert_array_equal(rec_items, expected_rec_items)
         np.testing.assert_array_equal(rec_scores, expected_rec_scores)
+
+    def test_save_and_load__do__restore(self, tmpdir):
+        model = PopularityModel()
+        model._rating_avg = {1: 0.2, 2: 0.5}
+        model.save(tmpdir)
+        reloaded_model = PopularityModel.load(tmpdir)
+        assert reloaded_model._rating_avg == model._rating_avg
+
+
+class TestCosineSimilarity:
+
+    def test_fit__use_case1__right_avg_y(self, user_movie_pair_1, ratings_1):
+        model = ItemCosineSimilarity()
+
+        model = model.fit(user_movie_pair_1, ratings_1)
+
+        expected_avg_y_list = [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]]
+
+        assert sorted(model._df_avg_y.values.tolist()) == sorted(expected_avg_y_list)
+
+    def test_predict__use_case1_predict_opp__right_ratings(
+            self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
+        model = ItemCosineSimilarity()
+        model.fit(user_movie_pair_1, ratings_1)
+
+        pred = model.predict(user_movie_pair_1_opp)
+
+        expected_pred_list = [4., 5.5, 5., 1., 3., 5., 1., 4.5, 5., 3.75, 1., 2.]
+
+        assert pred.tolist() == expected_pred_list
+
+    def test_save_and_load__do__restore(self, tmpdir):
+        model = ItemCosineSimilarity()
+        model._df_ratings = pd.DataFrame(
+            [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]],
+            columns=['movieId', 'avg_y'],
+        )
+        model._df_avg_y = pd.DataFrame(
+            [[1, 100, 2.], [2, 102, 3.], [3, 105, 5.]],
+            columns=['userId', 'movieId', 'rating'],
+        )
+        model.save(tmpdir)
+        reloaded_model = ItemCosineSimilarity.load(tmpdir)
+
+        pd.testing.assert_frame_equal(reloaded_model._df_ratings, model._df_ratings)
+        pd.testing.assert_frame_equal(reloaded_model._df_avg_y, model._df_avg_y)

@@ -14,39 +14,16 @@ This dataset (ml-20m) describes 5-star rating and free-text tagging activity fro
 
 ### virtual environment and dependencies
 
-**1. recommended method: pyenv + pipenv**  
-
-use `pyenv` to local python version to this project,
-
-```
-$ pyenv install 3.6.4
-$ pyenv local
-```
-
-use `pipenv` to set up dependencies,
-
-```
-$ pipenv --python 3.6.4
-$ pipenv install -r requirements.txt
-```
-
-enter virtual environment
-
-```
-$ pipenv shell
-```
-
-if you want to exit virual environment,
-
-```
-$ deactivate
-```
-
-**2. simple method**  
 create virtual environment
 
 ```
 $ python3.6 -m venv ./ENV
+```
+
+or
+
+```
+$ virtualenv --python=python3.6 ./ENV
 ```
 
 enter virtual environment

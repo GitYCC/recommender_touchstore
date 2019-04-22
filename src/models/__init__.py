@@ -1,3 +1,7 @@
-from .average import AverageModel
+from .popularity import PopularityModel
+from .similarity import ItemCosineSimilarity
 
-__all__ = [AverageModel]
+__all__ = [
+    PopularityModel,
+    ItemCosineSimilarity,
+]

@@ -1,3 +1,4 @@
+import logging
 from tempfile import TemporaryDirectory
 from collections import defaultdict
 
@@ -10,6 +11,12 @@ from process import Datagroup
 import converters
 import models
 from evaluate import RatingEvaluator, RecommendEvaluator
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _get_run_id_of_datagroup(train_start_year, valid_start_year):
@@ -33,6 +40,9 @@ def prepare_datagroup(train_start_year, valid_start_year):
     Returns: None
 
     """
+    logger.info('[prepare datagroup] train from {} to {}, valid from {}' \
+                .format(train_start_year, valid_start_year, valid_start_year))
+
     run_id = _get_run_id_of_datagroup(train_start_year, valid_start_year)
     if run_id is not None:
         return run_id
@@ -132,6 +142,10 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
+    logger.info('[training model] datagroup_id={}, convert_method={}, ' \
+                'model_method={}, topic={}, model_params={}' \
+                .format(datagroup_id, convert_method, model_method, topic, model_params))
+
     if model_params is None:
         model_params = dict()
 
@@ -144,6 +158,8 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
         tracer.log_param(key, val)
 
     # prepare data
+    logger.info('prepare data')
+
     path_datagroup = tracer.get_artifact_path(datagroup_id, '.')
     train_datagroup = process.load_datagroup(path_datagroup, 'train')
     valid_datagroup = process.load_datagroup(path_datagroup, 'valid')
@@ -154,12 +170,16 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     um_pair_valid, y_valid, u_feature_valid, m_feature_valid = conv.convert(valid_datagroup)
 
     # fitting
-    model_class = getattr(models, model_method)
-    model = model_class(**model_params)
+    logger.info('fit model')
 
-    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train)
+    model_class = getattr(models, model_method)
+    model = model_class()
+
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train, **model_params)
 
     # evaluation
+    logger.info('evaluation model')
+
     if topic == 'question1':
         train_result = \
             _evaluate_question1(model, um_pair_train, y_train, u_feature_train, m_feature_train)
@@ -185,8 +205,12 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
                                            u_feature_valid, m_feature_valid)
 
     # logging
+    logger.info('logging: train_result={}'.format(train_result))
+
     for key, val in train_result.items():
         tracer.log_metric('train.{}'.format(key), val)
+
+    logger.info('logging: valid_result={}'.format(valid_result))
 
     for key, val in valid_result.items():
         tracer.log_metric('valid.{}'.format(key), val)
@@ -206,6 +230,9 @@ def deploy(convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
+    logger.info('[deploy model] convert_method={}, model_method={}, topic={}, model_params={}' \
+                .format(convert_method, model_method, topic, model_params))
+
     if model_params is None:
         model_params = dict()
 
@@ -217,6 +244,8 @@ def deploy(convert_method, model_method, topic, model_params=None):
         tracer.log_param(key, val)
 
     # prepare data
+    logger.info('prepare data')
+
     datagroup = Datagroup(ratings=process.get_ratings(),
                           tags=process.get_tags(),
                           movies=process.get_movies(),
@@ -227,12 +256,16 @@ def deploy(convert_method, model_method, topic, model_params=None):
     um_pair, y, u_feature, m_feature = conv.convert(datagroup)
 
     # fitting
-    model_class = getattr(models, model_method)
-    model = model_class(**model_params)
+    logger.info('fit model')
 
-    model.fit(um_pair, y, u_feature, m_feature)
+    model_class = getattr(models, model_method)
+    model = model_class()
+
+    model.fit(um_pair, y, u_feature, m_feature, **model_params)
 
     # save
+    logger.info('save model: run_id={}'.format(tracer.get_current_run_id()))
+
     tracer.log_model(model)
 
     tracer.end_trace()
@@ -247,11 +280,13 @@ def test(deploy_id):
     Returns: None
 
     """
+    logger.info('[testing depolyed model] deploy_id={}'.format(deploy_id))
+
     tracer.start_trace('test')
     tracer.log_param('deploy_id', deploy_id)
 
     deploy_params = tracer.load_params(deploy_id)
-    print(deploy_params)
+
     model_method = deploy_params['model_method']
     topic = deploy_params['topic']
     convert_method = deploy_params['convert_method']
@@ -260,10 +295,14 @@ def test(deploy_id):
     tracer.log_param('convert_method', convert_method)
 
     # load model
+    logger.info('load model')
+
     model_class = getattr(models, model_method)
     model = tracer.load_model(deploy_id, model_class)
 
     # evaluation
+    logger.info('evaluation model')
+
     if topic == 'question1':
         datagroup = Datagroup(ratings=process.get_ratings(),
                               tags=process.get_tags(),
@@ -334,6 +373,9 @@ def test(deploy_id):
                 actions.append((user, movies[i]))
 
         result = _evaluate_question2(model, users, movies, actions, u_feature, m_feature)
+
+    # logging
+    logger.info('logging: result={}'.format(result))
 
     for key, val in result.items():
         tracer.log_metric('test.{}'.format(key), val)

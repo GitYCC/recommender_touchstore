@@ -3,7 +3,6 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import yaml
-
 import mlflow
 from mlflow.tracking.fluent import active_run
 
@@ -153,12 +152,11 @@ def get_artifact_path(run_id, fname):
 
 @_Controller
 def log_model(model):
-    with TemporaryDirectory(dir='tmp') as tmp:
-        local_path = os.path.join(tmp, 'model.pkl')
-        model.save(local_path)
-        log_artifact(local_path)
+    with TemporaryDirectory(dir='tmp') as tmp_dir:
+        model.save(Path(tmp_dir))
+        mlflow.log_artifacts(tmp_dir, artifact_path='model')
 
 
 def load_model(run_id, model_class):
-    path = _MLFlowPath().get_path_of_run(run_id) / 'artifacts' / 'model.pkl'
-    return model_class.load(path)
+    model_dir = _MLFlowPath().get_path_of_run(run_id) / 'artifacts' / 'model'
+    return model_class.load(model_dir)
