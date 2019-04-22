@@ -155,9 +155,9 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
 
     # fitting
     model_class = getattr(models, model_method)
-    model = model_class(**model_params)
+    model = model_class()
 
-    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train)
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train, **model_params)
 
     # evaluation
     if topic == 'question1':
@@ -228,9 +228,9 @@ def deploy(convert_method, model_method, topic, model_params=None):
 
     # fitting
     model_class = getattr(models, model_method)
-    model = model_class(**model_params)
+    model = model_class()
 
-    model.fit(um_pair, y, u_feature, m_feature)
+    model.fit(um_pair, y, u_feature, m_feature, **model_params)
 
     # save
     tracer.log_model(model)
