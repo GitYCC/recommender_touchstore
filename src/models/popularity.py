@@ -27,12 +27,11 @@ class PopularityModel(BaseModel):
 
     @classmethod
     def load(cls, local_dir):
-        instance = object.__new__(cls)
+        instance = PopularityModel()
         path_pickle = local_dir / 'model.pkl'
         with open(path_pickle, 'rb') as input_file:
             params = pickle.load(input_file)
-            for param_name, param_val in params.items():
-                setattr(instance, param_name, param_val)
+            instance._rating_avg = params['_rating_avg']
         return instance
 
     def save(self, local_dir):
