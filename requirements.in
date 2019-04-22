@@ -1,0 +1,28 @@
+### lint
+flake8==3.4.1
+flake8-docstrings==1.1.0
+flake8-import-order==0.13
+flake8-quotes==0.11.0
+pep8-naming==0.4.1
+
+### core
+jupyter==1.0.0
+numpy==1.15.0
+pandas==0.24.1
+matplotlib==2.2.2
+scipy==1.1.0
+
+### ML
+scikit-learn==0.20.0
+mlflow==0.8.0
+
+### other
+pyyaml==3.13
+tqdm==4.28.1
+
+# cloudpickle==0.8.1
+
+### test
+pytest==4.0.2
+pytest-cov==2.6.0
+pytest-mock==1.10.0
