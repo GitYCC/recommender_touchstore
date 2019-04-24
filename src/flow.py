@@ -40,7 +40,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
     Returns: None
 
     """
-    logger.info('[prepare datagroup] train from {} to {}, valid from {}' \
+    logger.info('[prepare datagroup] train from {} to {}, valid from {}'
                 .format(train_start_year, valid_start_year, valid_start_year))
 
     run_id = _get_run_id_of_datagroup(train_start_year, valid_start_year)
@@ -142,8 +142,8 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
-    logger.info('[training model] datagroup_id={}, convert_method={}, ' \
-                'model_method={}, topic={}, model_params={}' \
+    logger.info('[training model] datagroup_id={}, convert_method={}, '
+                'model_method={}, topic={}, model_params={}'
                 .format(datagroup_id, convert_method, model_method, topic, model_params))
 
     if model_params is None:
@@ -230,7 +230,7 @@ def deploy(convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
-    logger.info('[deploy model] convert_method={}, model_method={}, topic={}, model_params={}' \
+    logger.info('[deploy model] convert_method={}, model_method={}, topic={}, model_params={}'
                 .format(convert_method, model_method, topic, model_params))
 
     if model_params is None:
