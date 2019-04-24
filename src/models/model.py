@@ -66,22 +66,26 @@ class BaseModel(ABC):
 
         if maxsize is None:
             maxsize = len(movies)
-        df_table['rank'] = df_table.groupby('userId', as_index=False, sort=False)['predicted'] \
-                                   .rank(ascending=False, method='first')
-        df_table = df_table[df_table['rank'] <= maxsize]
 
         rec_items = np.full([len(users), maxsize], None, dtype='float64')
         rec_scores = np.full([len(users), maxsize], None, dtype='float64')
-        for _, series in df_table.iterrows():
-            userId = series['userId']
-            movieId = series['movieId']
-            score = series['predicted']
-            rank = series['rank']
 
-            index0 = int(user_index_mapping[userId])
-            index1_rec_items = int(rank - 1)
-            rec_items[index0, index1_rec_items] = movieId
-            rec_scores[index0, index1_rec_items] = score
+        if not df_table.empty:
+            df_table['rank'] = \
+                df_table.groupby('userId', as_index=False, sort=False)['predicted'] \
+                        .rank(ascending=False, method='first')
+            df_table = df_table[df_table['rank'] <= maxsize]
+
+            for _, series in df_table.iterrows():
+                userId = series['userId']
+                movieId = series['movieId']
+                score = series['predicted']
+                rank = series['rank']
+
+                index0 = int(user_index_mapping[userId])
+                index1_rec_items = int(rank - 1)
+                rec_items[index0, index1_rec_items] = movieId
+                rec_scores[index0, index1_rec_items] = score
 
         return (rec_items, rec_scores)
 
@@ -100,22 +104,26 @@ class BaseModel(ABC):
 
         if maxsize is None:
             maxsize = len(users)
-        df_table['rank'] = df_table.groupby('movieId', as_index=False, sort=False)['predicted'] \
-                                   .rank(ascending=False, method='first')
-        df_table = df_table[df_table['rank'] <= maxsize]
 
         rec_items = np.full([len(movies), maxsize], None, dtype='float64')
         rec_scores = np.full([len(movies), maxsize], None, dtype='float64')
-        for _, series in df_table.iterrows():
-            movieId = series['movieId']
-            userId = series['userId']
-            score = series['predicted']
-            rank = series['rank']
 
-            index0 = int(movie_index_mapping[movieId])
-            index1_rec_items = int(rank - 1)
-            rec_items[index0, index1_rec_items] = userId
-            rec_scores[index0, index1_rec_items] = score
+        if not df_table.empty:
+            df_table['rank'] = \
+                df_table.groupby('movieId', as_index=False, sort=False)['predicted'] \
+                        .rank(ascending=False, method='first')
+            df_table = df_table[df_table['rank'] <= maxsize]
+
+            for _, series in df_table.iterrows():
+                movieId = series['movieId']
+                userId = series['userId']
+                score = series['predicted']
+                rank = series['rank']
+
+                index0 = int(movie_index_mapping[movieId])
+                index1_rec_items = int(rank - 1)
+                rec_items[index0, index1_rec_items] = userId
+                rec_scores[index0, index1_rec_items] = score
 
         return (rec_items, rec_scores)
 
