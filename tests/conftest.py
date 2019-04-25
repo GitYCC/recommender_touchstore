@@ -4,9 +4,9 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from process import Datagroup
-
 sys.path.insert(0, 'src')
+
+from process import Datagroup  # noqa: E402
 
 
 @pytest.fixture

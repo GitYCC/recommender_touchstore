@@ -22,12 +22,12 @@ databricks-cli==0.8.6     # via mlflow
 decorator==4.4.0          # via ipython, traitlets
 defusedxml==0.6.0         # via nbconvert
 docutils==0.14            # via botocore
-entrypoints==0.3          # via nbconvert
+entrypoints==0.3          # via flake8, nbconvert
 flake8-docstrings==1.1.0
 flake8-import-order==0.13
 flake8-polyfill==1.0.2    # via flake8-docstrings
 flake8-quotes==0.11.0
-flake8==3.4.1
+flake8==3.7.7
 flask==1.0.2              # via mlflow
 gitdb2==2.0.5             # via gitpython
 gitpython==2.1.11         # via mlflow
@@ -72,9 +72,9 @@ prompt-toolkit==2.0.9     # via ipython, jupyter-console
 protobuf==3.7.1           # via mlflow
 ptyprocess==0.6.0         # via pexpect, terminado
 py==1.8.0                 # via pytest
-pycodestyle==2.3.1        # via flake8, flake8-import-order
+pycodestyle==2.5.0        # via flake8, flake8-import-order
 pydocstyle==3.0.0         # via flake8-docstrings
-pyflakes==1.5.0           # via flake8
+pyflakes==2.1.1           # via flake8
 pygments==2.3.1           # via ipython, jupyter-console, nbconvert, qtconsole
 pyparsing==2.4.0          # via matplotlib
 pyrsistent==0.14.11       # via jsonschema

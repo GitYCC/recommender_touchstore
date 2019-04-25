@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 class ItemCosineSimilarity(BaseModel):
     def __init__(self):
         self._df_ratings = None
-        self._df_avg_y = None
+        self._df_center_y = None
 
     def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
             similarity_theshold=0):
@@ -47,21 +47,21 @@ class ItemCosineSimilarity(BaseModel):
         # mean centering
         logger.info('mean centering')
 
-        df_avg_y = df[['movie_index', 'y']] \
+        df_center_y = df[['movie_index', 'y']] \
             .groupby('movie_index', as_index=False, sort=False).mean() \
-            .rename(columns={'y': 'avg_y'})
+            .rename(columns={'y': 'center_y'})
 
-        df = pd.merge(df, df_avg_y, on='movie_index')
-        df['mean_centering_y'] = df['y'] - df['avg_y']
-        df = df[['user_index', 'movie_index', 'mean_centering_y']]
+        df = pd.merge(df, df_center_y, on='movie_index')
+        df['centered_y'] = df['y'] - df['center_y']
+        df = df[['user_index', 'movie_index', 'centered_y']]
 
         # calculate item similarity
         logger.info('calculate item similarity step 1: cosine')
 
-        sparse_mat = coo_matrix((df.mean_centering_y, (df.movie_index, df.user_index)))
+        sparse_mat = coo_matrix((df.centered_y, (df.movie_index, df.user_index)))
         similarities_sparse = cosine_similarity(sparse_mat, dense_output=False).todok()
 
-        logger.info('calculate item similarity step 2: filter by threshold {}' \
+        logger.info('calculate item similarity step 2: filter by threshold {}'
                     .format(similarity_theshold))
 
         similarity_content = []
@@ -76,19 +76,19 @@ class ItemCosineSimilarity(BaseModel):
         logger.info('calculate relative rating')
 
         df = pd.merge(df, df_similarity, how='right', on='movie_index')
-        df = df[['user_index', 'reference_movie_index', 'mean_centering_y', 'sim']] \
+        df = df[['user_index', 'reference_movie_index', 'centered_y', 'sim']] \
             .rename(columns={'reference_movie_index': 'movie_index'})
-        df['mcy_mul_sim'] = df['mean_centering_y'] * df['sim']
+        df['cy_mul_sim'] = df['centered_y'] * df['sim']
         df['abs_sim'] = np.absolute(df['sim'])
         df = df.groupby(['user_index', 'movie_index'], as_index=False, sort=False).sum()
-        df['relative_rating'] = df['mcy_mul_sim'] / df['abs_sim']
+        df['relative_rating'] = df['cy_mul_sim'] / df['abs_sim']
         df = df[['user_index', 'movie_index', 'relative_rating']]
 
         # calculate rating
         logger.info('calculate rating')
 
-        df = pd.merge(df, df_avg_y, on='movie_index')
-        df['rating'] = df['relative_rating'] + df['avg_y']
+        df = pd.merge(df, df_center_y, on='movie_index')
+        df['rating'] = df['relative_rating'] + df['center_y']
         df = df[['user_index', 'movie_index', 'rating']]
 
         # back by indexer
@@ -98,11 +98,11 @@ class ItemCosineSimilarity(BaseModel):
         df = pd.merge(df, df_movie_id, on='movie_index')
         df = df[['userId', 'movieId', 'rating']]
 
-        df_avg_y = pd.merge(df_avg_y, df_movie_id, on='movie_index')
-        df_avg_y = df_avg_y[['movieId', 'avg_y']]
+        df_center_y = pd.merge(df_center_y, df_movie_id, on='movie_index')
+        df_center_y = df_center_y[['movieId', 'center_y']]
 
         self._df_ratings = df
-        self._df_avg_y = df_avg_y
+        self._df_center_y = df_center_y
         return self
 
     def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
@@ -113,17 +113,21 @@ class ItemCosineSimilarity(BaseModel):
         df = pd.merge(df, self._df_ratings, how='left', on=['userId', 'movieId'])
         null_filter = df.rating.isnull()
         df.loc[null_filter, 'rating'] = \
-            pd.merge(df.loc[null_filter, :], self._df_avg_y, how='left', on='movieId')['avg_y'] \
-            .values  # important necessary: convert to ndarray
+            pd.merge(
+                df.loc[null_filter, :],
+                self._df_center_y,
+                how='left',
+                on='movieId',
+            )['center_y'].values  # important necessary: convert to ndarray
         return df['rating'].values
 
     @classmethod
     def load(cls, local_dir):
         instance = ItemCosineSimilarity()
         instance._df_ratings = pd.read_pickle(str(local_dir / 'df_ratings.pkl'))
-        instance._df_avg_y = pd.read_pickle(str(local_dir / 'df_avg_y.pkl'))
+        instance._df_center_y = pd.read_pickle(str(local_dir / 'df_center_y.pkl'))
         return instance
 
     def save(self, local_dir):
         self._df_ratings.to_pickle(str(local_dir / 'df_ratings.pkl'))
-        self._df_avg_y.to_pickle(str(local_dir / 'df_avg_y.pkl'))
+        self._df_center_y.to_pickle(str(local_dir / 'df_center_y.pkl'))

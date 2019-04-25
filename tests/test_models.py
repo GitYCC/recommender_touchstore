@@ -109,14 +109,15 @@ class TestPopularityModel:
 
 class TestCosineSimilarity:
 
-    def test_fit__use_case1__right_avg_y(self, user_movie_pair_1, ratings_1):
+    def test_fit__use_case1__right_center_y(self, user_movie_pair_1, ratings_1):
         model = ItemCosineSimilarity()
 
         model = model.fit(user_movie_pair_1, ratings_1)
 
-        expected_avg_y_list = [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]]
+        expected_center_y_list = \
+            [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]]
 
-        assert sorted(model._df_avg_y.values.tolist()) == sorted(expected_avg_y_list)
+        assert sorted(model._df_center_y.values.tolist()) == sorted(expected_center_y_list)
 
     def test_predict__use_case1_predict_opp__right_ratings(
             self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
@@ -133,9 +134,9 @@ class TestCosineSimilarity:
         model = ItemCosineSimilarity()
         model._df_ratings = pd.DataFrame(
             [[100, 3.], [101, 1.], [102, 3.], [103, 2.], [104, 4.5], [105, 5.]],
-            columns=['movieId', 'avg_y'],
+            columns=['movieId', 'center_y'],
         )
-        model._df_avg_y = pd.DataFrame(
+        model._df_center_y = pd.DataFrame(
             [[1, 100, 2.], [2, 102, 3.], [3, 105, 5.]],
             columns=['userId', 'movieId', 'rating'],
         )
@@ -143,4 +144,4 @@ class TestCosineSimilarity:
         reloaded_model = ItemCosineSimilarity.load(tmpdir)
 
         pd.testing.assert_frame_equal(reloaded_model._df_ratings, model._df_ratings)
-        pd.testing.assert_frame_equal(reloaded_model._df_avg_y, model._df_avg_y)
+        pd.testing.assert_frame_equal(reloaded_model._df_center_y, model._df_center_y)

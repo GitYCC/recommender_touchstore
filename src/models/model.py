@@ -77,14 +77,14 @@ class BaseModel(ABC):
             df_table = df_table[df_table['rank'] <= maxsize]
 
             for _, series in df_table.iterrows():
-                userId = series['userId']
-                movieId = series['movieId']
+                user_id = series['userId']
+                movie_id = series['movieId']
                 score = series['predicted']
                 rank = series['rank']
 
-                index0 = int(user_index_mapping[userId])
+                index0 = int(user_index_mapping[user_id])
                 index1_rec_items = int(rank - 1)
-                rec_items[index0, index1_rec_items] = movieId
+                rec_items[index0, index1_rec_items] = movie_id
                 rec_scores[index0, index1_rec_items] = score
 
         return (rec_items, rec_scores)
@@ -115,14 +115,14 @@ class BaseModel(ABC):
             df_table = df_table[df_table['rank'] <= maxsize]
 
             for _, series in df_table.iterrows():
-                movieId = series['movieId']
-                userId = series['userId']
+                movie_id = series['movieId']
+                user_id = series['userId']
                 score = series['predicted']
                 rank = series['rank']
 
-                index0 = int(movie_index_mapping[movieId])
+                index0 = int(movie_index_mapping[movie_id])
                 index1_rec_items = int(rank - 1)
-                rec_items[index0, index1_rec_items] = userId
+                rec_items[index0, index1_rec_items] = user_id
                 rec_scores[index0, index1_rec_items] = score
 
         return (rec_items, rec_scores)
