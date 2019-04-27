@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+import math
 
 import numpy as np
 import pandas as pd
@@ -157,7 +158,7 @@ class BaseModel(ABC):
             logger.info('recommend movies:')
             user_num = len(users)
             with tqdm(total=user_num) as pbar:
-                for i in range(1+user_num//batch_num):
+                for i in range(math.ceil(user_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, user_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_users(
                         users[start:end], movies, user_feature, movie_feature, maxsize)
@@ -175,7 +176,7 @@ class BaseModel(ABC):
             logger.info('recommend users:')
             movie_num = len(movies)
             with tqdm(total=movie_num) as pbar:
-                for i in range(1+movie_num//batch_num):
+                for i in range(math.ceil(movie_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, movie_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_movies(
                         movies[start:end], users, user_feature, movie_feature, maxsize)

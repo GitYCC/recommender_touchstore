@@ -30,11 +30,11 @@ class TestBaseModel:
 
     @pytest.fixture
     def users(self):
-        return [1, 2, 3, 4]
+        return list(range(200))
 
     @pytest.fixture
     def movies(self):
-        return [11, 12, 13, 14, 15]
+        return list(range(1000, 1200))
 
     @pytest.mark.parametrize('recommended_type, maxsize', [('movie', None), ('user', None),
                                                            ('movie', 3), ('user', 3)])
