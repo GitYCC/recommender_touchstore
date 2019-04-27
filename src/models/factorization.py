@@ -81,6 +81,30 @@ class LIBMFConnecter:
         return df, df_user_index, df_movie_index
 
     @staticmethod
+    def save_matrix_with_indexer(df, path, user_indexer, item_indexer,
+                                 user_col='userId', item_col='movieId', rating_col='y'):
+        # indexize
+        user_index_col = user_col + '_index'
+        item_index_col = item_col + '_index'
+
+        df = pd.merge(df, user_indexer, on=user_col).drop(columns=[user_col])
+        df = pd.merge(df, item_indexer, on=item_col).drop(columns=[item_col])
+        df = df[[user_index_col, item_index_col, rating_col]]
+
+        # save matrix for libmf
+        with open(path, 'w') as fw:
+            for named_tuple in df.itertuples():
+                fw.write(
+                    '{} {} {}\n'.format(
+                        getattr(named_tuple, user_index_col),
+                        getattr(named_tuple, item_index_col),
+                        getattr(named_tuple, rating_col),
+                    )
+                )
+
+        return df
+
+    @staticmethod
     def load_matrix(path, df_user_index, df_item_index,
                     user_col='userId', item_col='movieId', rating_col='y'):
         list_ = list()
