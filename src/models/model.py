@@ -76,13 +76,13 @@ class BaseModel(ABC):
                         .rank(ascending=False, method='first')
             df_table = df_table[df_table['rank'] <= maxsize]
 
-            for _, series in df_table.iterrows():
-                user_id = series['userId']
-                movie_id = series['movieId']
-                score = series['predicted']
-                rank = series['rank']
+            for named_tuple in df_table.itertuples():
+                user_id = getattr(named_tuple, 'userId')
+                movie_id = getattr(named_tuple, 'movieId')
+                score = getattr(named_tuple, 'predicted')
+                rank = getattr(named_tuple, 'rank')
 
-                index0 = int(user_index_mapping[user_id])
+                index0 = user_index_mapping[user_id]
                 index1_rec_items = int(rank - 1)
                 rec_items[index0, index1_rec_items] = movie_id
                 rec_scores[index0, index1_rec_items] = score
@@ -114,13 +114,13 @@ class BaseModel(ABC):
                         .rank(ascending=False, method='first')
             df_table = df_table[df_table['rank'] <= maxsize]
 
-            for _, series in df_table.iterrows():
-                movie_id = series['movieId']
-                user_id = series['userId']
-                score = series['predicted']
-                rank = series['rank']
+            for named_tuple in df_table.itertuples():
+                movie_id = getattr(named_tuple, 'movieId')
+                user_id = getattr(named_tuple, 'userId')
+                score = getattr(named_tuple, 'predicted')
+                rank = getattr(named_tuple, 'rank')
 
-                index0 = int(movie_index_mapping[movie_id])
+                index0 = movie_index_mapping[movie_id]
                 index1_rec_items = int(rank - 1)
                 rec_items[index0, index1_rec_items] = user_id
                 rec_scores[index0, index1_rec_items] = score
