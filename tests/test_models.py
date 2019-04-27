@@ -1,4 +1,5 @@
 import sys
+import os
 
 import pytest
 import numpy as np
@@ -7,6 +8,9 @@ import pandas as pd
 from models.model import BaseModel
 from models import PopularityModel
 from models import ItemCosineSimilarity
+from models.factorization import LIBMFConnecter
+
+ROOT_DIR = os.path.split(os.path.abspath(__file__))[0]
 
 
 class TestBaseModel:
@@ -145,3 +149,60 @@ class TestCosineSimilarity:
 
         pd.testing.assert_frame_equal(reloaded_model._df_ratings, model._df_ratings)
         pd.testing.assert_frame_equal(reloaded_model._df_center_y, model._df_center_y)
+
+
+class TestLIBMFConnecter:
+
+    def test_save_matrix__save_and_load_matrix__restore(self, tmpdir):
+        df = pd.DataFrame(
+            [[1, 100, 3.], [1, 101, 1.], [2, 102, 3.], [2, 103, 2.]],
+            columns=['userId', 'movieId', 'y'],
+        )
+        path = str(tmpdir / 'matrix.txt')
+        index_df, df_user_index, df_movie_index = LIBMFConnecter.save_matrix(df, path)
+        restored_df = LIBMFConnecter.load_matrix(path, df_user_index, df_movie_index)
+
+        pd.testing.assert_frame_equal(restored_df, df)
+
+    def test_load_model__given_fixture__restore(self):
+        path = os.path.join(ROOT_DIR, 'fixtures', 'libmf_model.txt')
+        df_user_index = pd.DataFrame([(0, 10), (1, 20), (2, 30)], columns=['user_index', 'user'])
+        df_item_index = pd.DataFrame([(0, 100), (1, 200)], columns=['item_index', 'item'])
+        df_user_vector, df_item_vector, user_dim, item_dim, dim, global_b = \
+            LIBMFConnecter.load_model(
+                path, df_user_index, df_item_index,
+                user_col='user', item_col='item'
+            )
+
+        expected_df_user_vector = pd.DataFrame(
+            [
+                (10, np.array([1., 3., 5.])),
+                (20, np.array([np.nan, np.nan, np.nan])),
+                (30, np.array([2., 4., 6.])),
+            ],
+            columns=['user', 'vector']
+        )
+        expected_df_item_vector = pd.DataFrame(
+            [
+                (100, np.array([-1., -3., -5.])),
+                (200, np.array([-2., -4., -6.])),
+            ],
+            columns=['item', 'vector']
+        )
+        pd.testing.assert_frame_equal(df_user_vector, expected_df_user_vector)
+        pd.testing.assert_frame_equal(df_item_vector, expected_df_item_vector)
+        assert user_dim == 3
+        assert item_dim == 2
+        assert dim == 3
+        assert global_b == 0.5
+
+    def test_train__run__no_exception(self, tmpdir):
+        log_path = str(tmpdir / 'log.txt')
+        model_path = str(tmpdir / 'model.txt')
+        matrix_path = os.path.join(ROOT_DIR, 'fixtures', 'libmf_matrix.txt')
+        LIBMFConnecter.train(method='RVMF', dim=3, epoch=3, lr=0.001,
+                             pth_train=matrix_path, pth_model=model_path, pth_log=log_path,
+                             pth_valid=None, l1=0.0, l2=0.0)
+        LIBMFConnecter.train(method='OCMF', dim=3, epoch=3, lr=0.001,
+                             pth_train=matrix_path, pth_model=model_path, pth_log=log_path,
+                             pth_valid=matrix_path, l1=0.0, l2=0.0)
