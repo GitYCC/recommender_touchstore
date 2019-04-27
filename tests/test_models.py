@@ -164,6 +164,27 @@ class TestLIBMFConnecter:
 
         pd.testing.assert_frame_equal(restored_df, df)
 
+    def test_save_matrix_with_indexer(self, tmpdir):
+        path = str(tmpdir / 'matrix.txt')
+        df_user_index = pd.DataFrame([(0, 10), (1, 20), (2, 30)], columns=['user_index', 'user'])
+        df_item_index = pd.DataFrame([(0, 100), (1, 200)], columns=['item_index', 'item'])
+        df = pd.DataFrame(
+            [[10, 100, 1.], [10, 200, 2.], [20, 100, 3.], [20, 300, 4.], [40, 100, 5.]],
+            columns=['user', 'item', 'y'],
+        )
+        LIBMFConnecter.save_matrix_with_indexer(
+            df, path, df_user_index, df_item_index,
+            user_col='user', item_col='item', rating_col='y')
+        restored_df = LIBMFConnecter.load_matrix(path, df_user_index, df_item_index,
+                                                 user_col='user', item_col='item', rating_col='y')
+        expected_df = pd.DataFrame(
+            [[10, 100, 1.], [10, 200, 2.], [20, 100, 3.]],
+            columns=['user', 'item', 'y'],
+        )
+        pd.testing.assert_frame_equal(
+            restored_df.sort_values(by=['y']).reset_index(drop=True),
+            expected_df.sort_values(by=['y']).reset_index(drop=True))
+
     def test_load_model__given_fixture__restore(self):
         path = os.path.join(ROOT_DIR, 'fixtures', 'libmf_model.txt')
         df_user_index = pd.DataFrame([(0, 10), (1, 20), (2, 30)], columns=['user_index', 'user'])
