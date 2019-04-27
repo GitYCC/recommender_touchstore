@@ -9,7 +9,9 @@ class PopularityModel(BaseModel):
     def __init__(self):
         self._rating_avg = dict()
 
-    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None):
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
+            valid_user_movie_pair=None, valid_y=None,
+            valid_user_feature=None, valid_movie_feature=None):
         rating_sum = dict()
         count = dict()
         for i, (u, m) in enumerate(user_movie_pair.tolist()):

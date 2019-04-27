@@ -16,7 +16,10 @@ logger.setLevel(logging.INFO)
 class BaseModel(ABC):
 
     @abstractmethod
-    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None, **model_params):
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
+            valid_user_movie_pair=None, valid_y=None,
+            valid_user_feature=None, valid_movie_feature=None,
+            **model_params):
         """Fit the model according to the given training data.
 
         Args:
@@ -28,6 +31,14 @@ class BaseModel(ABC):
                 Given more feature content about user.
             movie_feature (pandas.Dataframe, optional):
                 Given more feature content about movie.
+            valid_user_movie_pair ({array-like, sparse matrix}, shape (n_samples, 2), optional):
+                Valid pair of userId and movieId, where n_samples is the number of samples.
+            valid_y (array-like, shape (n_samples,), optional):
+                Target relative to valid_user_movie_pair.
+            valid_user_feature (pandas.Dataframe, optional):
+                Given more feature content about user for vaildation.
+            valid_movie_feature (pandas.Dataframe, optional):
+                Given more feature content about movie for vaildation.
 
         Returns:
             self (object)

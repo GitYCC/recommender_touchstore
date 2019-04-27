@@ -175,7 +175,9 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     model_class = getattr(models, model_method)
     model = model_class()
 
-    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train, **model_params)
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
+              um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
+              **model_params)
 
     # evaluation
     logger.info('evaluation model')
