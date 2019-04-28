@@ -152,7 +152,7 @@ def get_artifact_path(run_id, fname):
 
 @_Controller
 def log_model(model):
-    with TemporaryDirectory(dir='tmp') as tmp_dir:
+    with TemporaryDirectory() as tmp_dir:
         model.save(Path(tmp_dir))
         mlflow.log_artifacts(tmp_dir, artifact_path='model')
 

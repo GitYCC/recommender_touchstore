@@ -1,5 +1,4 @@
 from datetime import datetime
-from tempfile import TemporaryDirectory
 
 import pandas as pd
 
@@ -50,11 +49,11 @@ def test_select_data_by_movie_group():
     pd.testing.assert_frame_equal(df, expect_df)
 
 
-def test_save_and_load_datagroup(datagroup):
-    with TemporaryDirectory(dir='tmp') as temp_dir:
-        process.save_datagroup(temp_dir, datagroup, 'test')
-        reload_datagroup = process.load_datagroup(temp_dir, 'test')
-        pd.testing.assert_frame_equal(datagroup.ratings, reload_datagroup.ratings)
-        pd.testing.assert_frame_equal(datagroup.tags, reload_datagroup.tags)
-        pd.testing.assert_frame_equal(datagroup.movies, reload_datagroup.movies)
-        pd.testing.assert_frame_equal(datagroup.genome, reload_datagroup.genome)
+def test_save_and_load_datagroup(datagroup, tmpdir):
+    temp_dir = str(tmpdir)
+    process.save_datagroup(temp_dir, datagroup, 'test')
+    reload_datagroup = process.load_datagroup(temp_dir, 'test')
+    pd.testing.assert_frame_equal(datagroup.ratings, reload_datagroup.ratings)
+    pd.testing.assert_frame_equal(datagroup.tags, reload_datagroup.tags)
+    pd.testing.assert_frame_equal(datagroup.movies, reload_datagroup.movies)
+    pd.testing.assert_frame_equal(datagroup.genome, reload_datagroup.genome)

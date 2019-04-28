@@ -58,7 +58,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
     _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
-    with TemporaryDirectory(dir='tmp') as temp_dir:
+    with TemporaryDirectory() as temp_dir:
         paths = process.save_datagroup(temp_dir, train_group, 'train')
         for path in paths:
             tracer.log_artifact(path)
