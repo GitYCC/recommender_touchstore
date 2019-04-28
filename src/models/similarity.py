@@ -61,13 +61,13 @@ class ItemCosineSimilarity(BaseModel):
         logger.info('calculate item similarity step 1: cosine')
 
         sparse_mat = coo_matrix((df.centered_y, (df.movie_index, df.user_index)))
-        similarities_sparse = cosine_similarity(sparse_mat, dense_output=False).todok()
+        similarities_sparse = cosine_similarity(sparse_mat, dense_output=False)
 
         logger.info('calculate item similarity step 2: filter by threshold {}'
                     .format(similarity_theshold))
 
         similarity_content = []
-        for (movie_index, reference), rating in tqdm(similarities_sparse.items()):
+        for (movie_index, reference), rating in tqdm(similarities_sparse.todok().items()):
             if abs(rating) > similarity_theshold:
                 similarity_content.append((movie_index, reference, rating))
         df_similarity = pd.DataFrame(
