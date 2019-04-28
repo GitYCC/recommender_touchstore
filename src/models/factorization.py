@@ -220,13 +220,18 @@ class LIBMFConnecter:
                            log=pth_log,)
                    )
 
-        def flush_filter(line):
-            return ((int(line.strip().split(' ')[0])+1) % 100) == 0
+        def flush_filter_closure():
+            flush_list = list(range(0, epoch, 50)) + [epoch-1]
+
+            def func(line):
+                epoch_index = int(line.strip().split(' ')[0])
+                return epoch_index in flush_list
+            return func
 
         def terminal_condition(line):
             return ('nan' in line.split(' ')) or ('-nan' in line.split(' '))
 
-        execute(cmd, flush_filter=flush_filter, terminal_condition=terminal_condition)
+        execute(cmd, flush_filter=flush_filter_closure(), terminal_condition=terminal_condition)
 
         train_err = None
         valid_err = None
