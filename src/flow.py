@@ -142,7 +142,7 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
-    logger.info('[training model] datagroup_id={}, convert_method={}, '
+    logger.info('[train model] datagroup_id={}, convert_method={}, '
                 'model_method={}, topic={}, model_params={}'
                 .format(datagroup_id, convert_method, model_method, topic, model_params))
 
@@ -266,11 +266,13 @@ def deploy(convert_method, model_method, topic, model_params=None):
     model.fit(um_pair, y, u_feature, m_feature, **model_params)
 
     # save
-    logger.info('save model: run_id={}'.format(tracer.get_current_run_id()))
+    run_id = tracer.get_current_run_id()
+    logger.info('save model: run_id={}'.format(run_id))
 
     tracer.log_model(model)
 
     tracer.end_trace()
+    return run_id
 
 
 def test(deploy_id):
@@ -282,19 +284,19 @@ def test(deploy_id):
     Returns: None
 
     """
-    logger.info('[testing depolyed model] deploy_id={}'.format(deploy_id))
+    logger.info('[test depolyed model] deploy_id={}'.format(deploy_id))
 
     tracer.start_trace('test')
     tracer.log_param('deploy_id', deploy_id)
 
     deploy_params = tracer.load_params(deploy_id)
 
+    for key, val in deploy_params.items():
+        tracer.log_param(key, val)
+
     model_method = deploy_params['model_method']
     topic = deploy_params['topic']
     convert_method = deploy_params['convert_method']
-
-    tracer.log_param('topic', topic)
-    tracer.log_param('convert_method', convert_method)
 
     # load model
     logger.info('load model')

@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 from sklearn.metrics.pairwise import cosine_similarity
-from tqdm import tqdm
 
 from .model import BaseModel
 
@@ -66,13 +65,16 @@ class ItemCosineSimilarity(BaseModel):
         logger.info('calculate item similarity step 2: filter by threshold {}'
                     .format(similarity_theshold))
 
-        similarity_content = []
-        for (movie_index, reference), rating in tqdm(similarities_sparse.todok().items()):
-            if abs(rating) > similarity_theshold:
-                similarity_content.append((movie_index, reference, rating))
+        mask = (np.absolute(similarities_sparse) > similarity_theshold)
+        similarities_sparse = similarities_sparse.multiply(mask)
+        similarities_sparse = similarities_sparse.tocoo()
+
         df_similarity = pd.DataFrame(
-            similarity_content,
-            columns=['movie_index', 'reference_movie_index', 'sim'])
+            dict(
+                movie_index=similarities_sparse.row,
+                reference_movie_index=similarities_sparse.col,
+                sim=similarities_sparse.data,
+            ))
 
         # calculate relative rating
         logger.info('calculate relative rating')
