@@ -243,7 +243,7 @@ class LIBMFConnecter:
                 list_ = re.split(r' +', line)
                 train_err = float(list_[1])
                 valid_err = float(list_[2])
-                overfit_rate = (valid_err - train_err) / train_err
+                overfit_rate = (valid_err - train_err) / train_err if train_err > 0.0 else np.nan
         else:
             with open(pth_log, 'r') as fr:
                 line = fr.readlines()[-1].strip()
