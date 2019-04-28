@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 from sklearn.metrics.pairwise import cosine_similarity
-from tqdm import tqdm
 
 from .model import BaseModel
 
