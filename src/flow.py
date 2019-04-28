@@ -266,11 +266,13 @@ def deploy(convert_method, model_method, topic, model_params=None):
     model.fit(um_pair, y, u_feature, m_feature, **model_params)
 
     # save
-    logger.info('save model: run_id={}'.format(tracer.get_current_run_id()))
+    run_id = tracer.get_current_run_id()
+    logger.info('save model: run_id={}'.format(run_id))
 
     tracer.log_model(model)
 
     tracer.end_trace()
+    return run_id
 
 
 def test(deploy_id):
