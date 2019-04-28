@@ -45,7 +45,7 @@ def prepare_question1():
     path_answer = os.path.join(WORKSPACE, 'ans_q1.txt')
 
     df_q1.loc[:, ('userId', 'movieId')].to_csv(path_test, index=None)
-    df_q1.loc[:, 'rating'].to_csv(path_answer, index=None)
+    df_q1.loc[:, 'rating'].to_csv(path_answer, index=None, header=False)
 
 
 def prepare_question2():
