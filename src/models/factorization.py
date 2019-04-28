@@ -3,11 +3,19 @@ import os
 import re
 import subprocess
 import signal
+import logging
+from tempfile import TemporaryDirectory
+import pickle
 
 import numpy as np
 import pandas as pd
 
 ROOT_DIR = os.path.split(os.path.abspath(__file__))[0]
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def execute(command, flush_filter=None, terminal_condition=None):
@@ -251,3 +259,105 @@ class LIBMFConnecter:
                 train_err = float(list_[1])
 
         return (train_err, valid_err, overfit_rate)
+
+
+class RealValuedMatrixFactorization():
+    def __init__(self):
+        self._df_user_vector = None
+        self._df_movie_vector = None
+        self._global_b = None
+
+    def _has_vaildation(self, valid_user_movie_pair, valid_y):
+        return valid_user_movie_pair is not None and valid_y is not None
+
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
+            valid_user_movie_pair=None, valid_y=None,
+            valid_user_feature=None, valid_movie_feature=None,
+            dim=10, epoch=1000, lr=0.1, l1=0.0, l2=0.0):
+        with TemporaryDirectory() as temp_dir:
+            train_matrix_path = os.path.join(temp_dir, 'train_matrix.txt')
+            valid_matrix_path = os.path.join(temp_dir, 'valid_matrix.txt')
+            model_path = os.path.join(temp_dir, 'model.txt')
+            log_path = os.path.join(temp_dir, 'log.txt')
+
+            # prepare matrix for training
+            logger.info('prepare matrix for training')
+
+            y = np.reshape(y, (y.shape[0], 1))
+            content = np.hstack((user_movie_pair, y))
+            df = pd.DataFrame(
+                content,
+                columns=['userId', 'movieId', 'y'],
+            )
+            df.userId = df.userId.astype('int32')
+            df.movieId = df.movieId.astype('int32')
+
+            indexed_df, user_indexer, movie_indexer = \
+                LIBMFConnecter.save_matrix(df, train_matrix_path)
+
+            if self._has_vaildation(valid_user_movie_pair, valid_y):
+                # prepare matrix for validation
+                logger.info('prepare matrix for validation')
+
+                valid_y = np.reshape(valid_y, (valid_y.shape[0], 1))
+                valid_content = np.hstack((valid_user_movie_pair, valid_y))
+                valid_df = pd.DataFrame(
+                    valid_content,
+                    columns=['userId', 'movieId', 'y'],
+                )
+                valid_df.userId = valid_df.userId.astype('int32')
+                valid_df.movieId = valid_df.movieId.astype('int32')
+
+                LIBMFConnecter.save_matrix_with_indexer(
+                    valid_df, valid_matrix_path, user_indexer, movie_indexer)
+
+            # fit RVMF
+            logger.info('fit RVMF with dim={}, epoch={}, lr={}, l1={}, l2={}'
+                        .format(dim, epoch, lr, l1, l2))
+
+            LIBMFConnecter.train(method='RVMF', dim=dim, epoch=epoch, lr=lr,
+                                 pth_train=train_matrix_path, pth_model=model_path,
+                                 pth_log=log_path, pth_valid=valid_matrix_path, l1=l1, l2=l2)
+            df_user_vector, df_movie_vector, user_dim, item_dim, dim, global_b = \
+                LIBMFConnecter.load_model(model_path, user_indexer, movie_indexer)
+
+        self._df_user_vector = df_user_vector
+        self._df_movie_vector = df_movie_vector
+        self._global_b = global_b
+        return self
+
+    def predict(self, user_movie_pair, user_feature=None, movie_feature=None):
+        df = pd.DataFrame(
+            user_movie_pair,
+            columns=['userId', 'movieId'],
+        )
+        df = pd.merge(df, self._df_user_vector, how='left', on=['userId']) \
+               .rename(columns={'vector': 'user_vector'})
+        df = pd.merge(df, self._df_movie_vector, how='left', on=['movieId']) \
+               .rename(columns={'vector': 'movie_vector'})
+
+        def calculate_rating(row):
+            user_vector = row['user_vector']
+            movie_vector = row['movie_vector']
+            if np.isnan(user_vector).any() or np.isnan(movie_vector).any():
+                return self._global_b
+            else:
+                return np.dot(user_vector, movie_vector)
+
+        df['rating'] = df.apply(calculate_rating, axis=1)
+        return df['rating'].values
+
+    @classmethod
+    def load(cls, local_dir):
+        instance = RealValuedMatrixFactorization()
+        instance._df_user_vector = pd.read_pickle(str(local_dir / 'df_user_vector.pkl'))
+        instance._df_movie_vector = pd.read_pickle(str(local_dir / 'df_movie_vector.pkl'))
+        with open(str(local_dir / 'global_b.pkl'), 'rb') as input_file:
+            instance._global_b = pickle.load(input_file)
+        return instance
+
+    def save(self, local_dir):
+        self._df_user_vector.to_pickle(str(local_dir / 'df_user_vector.pkl'))
+        self._df_movie_vector.to_pickle(str(local_dir / 'df_movie_vector.pkl'))
+        with open(str(local_dir / 'global_b.pkl'), 'wb') as output_file:
+            pickle.dump(self._global_b, output_file)
