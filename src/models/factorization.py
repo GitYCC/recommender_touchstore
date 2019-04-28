@@ -90,6 +90,7 @@ class LIBMFConnecter:
         df = pd.merge(df, user_indexer, on=user_col).drop(columns=[user_col])
         df = pd.merge(df, item_indexer, on=item_col).drop(columns=[item_col])
         df = df[[user_index_col, item_index_col, rating_col]]
+        df = df.dropna()
 
         # save matrix for libmf
         with open(path, 'w') as fw:
