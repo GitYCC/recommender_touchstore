@@ -291,12 +291,12 @@ def test(deploy_id):
 
     deploy_params = tracer.load_params(deploy_id)
 
+    for key, val in deploy_params.items():
+        tracer.log_param(key, val)
+
     model_method = deploy_params['model_method']
     topic = deploy_params['topic']
     convert_method = deploy_params['convert_method']
-
-    tracer.log_param('topic', topic)
-    tracer.log_param('convert_method', convert_method)
 
     # load model
     logger.info('load model')
