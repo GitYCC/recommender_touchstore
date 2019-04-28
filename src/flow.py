@@ -142,7 +142,7 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     Returns: None
 
     """
-    logger.info('[training model] datagroup_id={}, convert_method={}, '
+    logger.info('[train model] datagroup_id={}, convert_method={}, '
                 'model_method={}, topic={}, model_params={}'
                 .format(datagroup_id, convert_method, model_method, topic, model_params))
 
@@ -282,7 +282,7 @@ def test(deploy_id):
     Returns: None
 
     """
-    logger.info('[testing depolyed model] deploy_id={}'.format(deploy_id))
+    logger.info('[test depolyed model] deploy_id={}'.format(deploy_id))
 
     tracer.start_trace('test')
     tracer.log_param('deploy_id', deploy_id)
