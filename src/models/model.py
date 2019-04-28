@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+import math
 
 import numpy as np
 import pandas as pd
@@ -15,7 +16,10 @@ logger.setLevel(logging.INFO)
 class BaseModel(ABC):
 
     @abstractmethod
-    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None, **model_params):
+    def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
+            valid_user_movie_pair=None, valid_y=None,
+            valid_user_feature=None, valid_movie_feature=None,
+            **model_params):
         """Fit the model according to the given training data.
 
         Args:
@@ -27,6 +31,14 @@ class BaseModel(ABC):
                 Given more feature content about user.
             movie_feature (pandas.Dataframe, optional):
                 Given more feature content about movie.
+            valid_user_movie_pair ({array-like, sparse matrix}, shape (n_samples, 2), optional):
+                Valid pair of userId and movieId, where n_samples is the number of samples.
+            valid_y (array-like, shape (n_samples,), optional):
+                Target relative to valid_user_movie_pair.
+            valid_user_feature (pandas.Dataframe, optional):
+                Given more feature content about user for vaildation.
+            valid_movie_feature (pandas.Dataframe, optional):
+                Given more feature content about movie for vaildation.
 
         Returns:
             self (object)
@@ -76,13 +88,13 @@ class BaseModel(ABC):
                         .rank(ascending=False, method='first')
             df_table = df_table[df_table['rank'] <= maxsize]
 
-            for _, series in df_table.iterrows():
-                user_id = series['userId']
-                movie_id = series['movieId']
-                score = series['predicted']
-                rank = series['rank']
+            for named_tuple in df_table.itertuples():
+                user_id = getattr(named_tuple, 'userId')
+                movie_id = getattr(named_tuple, 'movieId')
+                score = getattr(named_tuple, 'predicted')
+                rank = getattr(named_tuple, 'rank')
 
-                index0 = int(user_index_mapping[user_id])
+                index0 = user_index_mapping[user_id]
                 index1_rec_items = int(rank - 1)
                 rec_items[index0, index1_rec_items] = movie_id
                 rec_scores[index0, index1_rec_items] = score
@@ -114,13 +126,13 @@ class BaseModel(ABC):
                         .rank(ascending=False, method='first')
             df_table = df_table[df_table['rank'] <= maxsize]
 
-            for _, series in df_table.iterrows():
-                movie_id = series['movieId']
-                user_id = series['userId']
-                score = series['predicted']
-                rank = series['rank']
+            for named_tuple in df_table.itertuples():
+                movie_id = getattr(named_tuple, 'movieId')
+                user_id = getattr(named_tuple, 'userId')
+                score = getattr(named_tuple, 'predicted')
+                rank = getattr(named_tuple, 'rank')
 
-                index0 = int(movie_index_mapping[movie_id])
+                index0 = movie_index_mapping[movie_id]
                 index1_rec_items = int(rank - 1)
                 rec_items[index0, index1_rec_items] = user_id
                 rec_scores[index0, index1_rec_items] = score
@@ -157,7 +169,7 @@ class BaseModel(ABC):
             logger.info('recommend movies:')
             user_num = len(users)
             with tqdm(total=user_num) as pbar:
-                for i in range(1+user_num//batch_num):
+                for i in range(math.ceil(user_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, user_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_users(
                         users[start:end], movies, user_feature, movie_feature, maxsize)
@@ -175,7 +187,7 @@ class BaseModel(ABC):
             logger.info('recommend users:')
             movie_num = len(movies)
             with tqdm(total=movie_num) as pbar:
-                for i in range(1+movie_num//batch_num):
+                for i in range(math.ceil(movie_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, movie_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_movies(
                         movies[start:end], users, user_feature, movie_feature, maxsize)

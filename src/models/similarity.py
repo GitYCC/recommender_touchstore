@@ -21,6 +21,8 @@ class ItemCosineSimilarity(BaseModel):
         self._df_center_y = None
 
     def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
+            valid_user_movie_pair=None, valid_y=None,
+            valid_user_feature=None, valid_movie_feature=None,
             similarity_theshold=0):
         y = np.reshape(y, (y.shape[0], 1))
         content = np.hstack((user_movie_pair, y))

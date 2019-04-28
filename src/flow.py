@@ -58,7 +58,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
     _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
-    with TemporaryDirectory(dir='tmp') as temp_dir:
+    with TemporaryDirectory() as temp_dir:
         paths = process.save_datagroup(temp_dir, train_group, 'train')
         for path in paths:
             tracer.log_artifact(path)
@@ -175,7 +175,9 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     model_class = getattr(models, model_method)
     model = model_class()
 
-    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train, **model_params)
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
+              um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
+              **model_params)
 
     # evaluation
     logger.info('evaluation model')

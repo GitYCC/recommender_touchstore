@@ -1,12 +1,18 @@
 import sys
+import os
 
 import pytest
 import numpy as np
 import pandas as pd
 
+import config
 from models.model import BaseModel
 from models import PopularityModel
 from models import ItemCosineSimilarity
+from models.factorization import LIBMFConnecter
+from models import RealValuedMatrixFactorization
+
+ROOT_DIR = os.path.split(os.path.abspath(__file__))[0]
 
 
 class TestBaseModel:
@@ -30,11 +36,11 @@ class TestBaseModel:
 
     @pytest.fixture
     def users(self):
-        return [1, 2, 3, 4]
+        return list(range(200))
 
     @pytest.fixture
     def movies(self):
-        return [11, 12, 13, 14, 15]
+        return list(range(1000, 1200))
 
     @pytest.mark.parametrize('recommended_type, maxsize', [('movie', None), ('user', None),
                                                            ('movie', 3), ('user', 3)])
@@ -145,3 +151,168 @@ class TestCosineSimilarity:
 
         pd.testing.assert_frame_equal(reloaded_model._df_ratings, model._df_ratings)
         pd.testing.assert_frame_equal(reloaded_model._df_center_y, model._df_center_y)
+
+
+class TestLIBMFConnecter:
+
+    def test_save_matrix__save_and_load_matrix__restore(self, tmpdir):
+        df = pd.DataFrame(
+            [[1, 100, 3.], [1, 101, 1.], [2, 102, 3.], [2, 103, 2.]],
+            columns=['userId', 'movieId', 'y'],
+        )
+        path = str(tmpdir / 'matrix.txt')
+        index_df, df_user_index, df_movie_index = LIBMFConnecter.save_matrix(df, path)
+        restored_df = LIBMFConnecter.load_matrix(path, df_user_index, df_movie_index)
+
+        pd.testing.assert_frame_equal(restored_df, df)
+
+    def test_save_matrix_with_indexer(self, tmpdir):
+        path = str(tmpdir / 'matrix.txt')
+        df_user_index = pd.DataFrame([(0, 10), (1, 20), (2, 30)], columns=['user_index', 'user'])
+        df_item_index = pd.DataFrame([(0, 100), (1, 200)], columns=['item_index', 'item'])
+        df = pd.DataFrame(
+            [[10, 100, 1.], [10, 200, 2.], [20, 100, 3.], [20, 300, 4.], [40, 100, 5.]],
+            columns=['user', 'item', 'y'],
+        )
+        LIBMFConnecter.save_matrix_with_indexer(
+            df, path, df_user_index, df_item_index,
+            user_col='user', item_col='item', rating_col='y')
+        restored_df = LIBMFConnecter.load_matrix(path, df_user_index, df_item_index,
+                                                 user_col='user', item_col='item', rating_col='y')
+        expected_df = pd.DataFrame(
+            [[10, 100, 1.], [10, 200, 2.], [20, 100, 3.]],
+            columns=['user', 'item', 'y'],
+        )
+        pd.testing.assert_frame_equal(
+            restored_df.sort_values(by=['y']).reset_index(drop=True),
+            expected_df.sort_values(by=['y']).reset_index(drop=True))
+
+    def test_load_model__given_fixture__restore(self):
+        path = os.path.join(ROOT_DIR, 'fixtures', 'libmf_model.txt')
+        df_user_index = pd.DataFrame([(0, 10), (1, 20), (2, 30)], columns=['user_index', 'user'])
+        df_item_index = pd.DataFrame([(0, 100), (1, 200)], columns=['item_index', 'item'])
+        df_user_vector, df_item_vector, user_dim, item_dim, dim, global_b = \
+            LIBMFConnecter.load_model(
+                path, df_user_index, df_item_index,
+                user_col='user', item_col='item'
+            )
+
+        expected_df_user_vector = pd.DataFrame(
+            [
+                (10, np.array([1., 3., 5.])),
+                (20, np.array([np.nan, np.nan, np.nan])),
+                (30, np.array([2., 4., 6.])),
+            ],
+            columns=['user', 'vector']
+        )
+        expected_df_item_vector = pd.DataFrame(
+            [
+                (100, np.array([-1., -3., -5.])),
+                (200, np.array([-2., -4., -6.])),
+            ],
+            columns=['item', 'vector']
+        )
+        pd.testing.assert_frame_equal(df_user_vector, expected_df_user_vector)
+        pd.testing.assert_frame_equal(df_item_vector, expected_df_item_vector)
+        assert user_dim == 3
+        assert item_dim == 2
+        assert dim == 3
+        assert global_b == 0.5
+
+    def test_train__run__no_exception(self, tmpdir):
+        log_path = str(tmpdir / 'log.txt')
+        model_path = str(tmpdir / 'model.txt')
+        matrix_path = os.path.join(ROOT_DIR, 'fixtures', 'libmf_matrix.txt')
+        LIBMFConnecter.train(method='RVMF', dim=3, epoch=3, lr=0.001,
+                             pth_train=matrix_path, pth_model=model_path, pth_log=log_path,
+                             pth_valid=None, l1=0.0, l2=0.0)
+        LIBMFConnecter.train(method='OCMF', dim=3, epoch=3, lr=0.001,
+                             pth_train=matrix_path, pth_model=model_path, pth_log=log_path,
+                             pth_valid=matrix_path, l1=0.0, l2=0.0)
+
+
+class TestRealValuedMatrixFactorization:
+
+    def test_fit__use_case1__right_global_b(self, user_movie_pair_1, ratings_1):
+        model = RealValuedMatrixFactorization()
+
+        model = model.fit(user_movie_pair_1, ratings_1, dim=3, epoch=10, lr=0.1, l1=0.0, l2=0.0)
+
+        expected_global_b = 3.083333
+        assert (expected_global_b - config.FLOAT_EPSILN <
+                model._global_b < expected_global_b + config.FLOAT_EPSILN)
+
+    @pytest.fixture
+    def _full_matrix(self):
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100], [1, 101]])
+        ratings = np.array([1, 2, 3, 4])
+        return user_movie_pair, ratings
+
+    @pytest.fixture
+    def _non_full_matrix(self):
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+        ratings = np.array([1, 2, 3])
+        return user_movie_pair, ratings
+
+    def test_fit__full_matrix__restore_ratings(self, _full_matrix):
+        user_movie_pair, ratings = _full_matrix
+
+        model = RealValuedMatrixFactorization()
+        model = model.fit(user_movie_pair, ratings, dim=3, epoch=300, lr=0.1, l1=0.0, l2=0.0)
+
+        p = np.array([list(vector) for vector in model._df_user_vector['vector'].values])
+        q = np.array([list(vector) for vector in model._df_movie_vector['vector'].values])
+
+        restored_ratings = np.reshape(np.matmul(p, q.T), (-1,))
+        expected_diff = np.absolute(ratings - restored_ratings)
+
+        assert (expected_diff < config.FLOAT_EPSILN).all()
+
+    def test_fit__non_full_matrix__restore_ratings(self, _non_full_matrix):
+        user_movie_pair, ratings = _non_full_matrix
+
+        model = RealValuedMatrixFactorization()
+        model = model.fit(user_movie_pair, ratings, dim=3, epoch=300, lr=0.1, l1=0.0, l2=0.0)
+
+        p = np.array([list(vector) for vector in model._df_user_vector['vector'].values])
+        q = np.array([list(vector) for vector in model._df_movie_vector['vector'].values])
+
+        argument_ratings = np.array([1, 2, 3, model._global_b])
+        restored_ratings = np.reshape(np.matmul(p, q.T), (-1,))
+        expected_diff = np.absolute(argument_ratings - restored_ratings)
+
+        assert (expected_diff[:3] < config.FLOAT_EPSILN).all()
+        assert expected_diff[3] < 1.0
+
+    def test_predict__full_matrix__right_ratings(self, _non_full_matrix, _full_matrix):
+        user_movie_pair, ratings = _non_full_matrix
+        full_user_movie_pair, _ = _full_matrix
+
+        model = RealValuedMatrixFactorization()
+        model.fit(user_movie_pair, ratings, dim=3, epoch=300, lr=0.1, l1=0.0, l2=0.0)
+
+        pred = model.predict(full_user_movie_pair)
+
+        argument_ratings = np.array([1, 2, 3, model._global_b])
+        expected_diff = np.absolute(argument_ratings - pred)
+
+        assert (expected_diff[:3] < config.FLOAT_EPSILN).all()
+        assert expected_diff[3] < 1.0
+
+    def test_save_and_load__do__restore(self, tmpdir):
+        model = RealValuedMatrixFactorization()
+        model._df_user_vector = pd.DataFrame(
+            [[1, np.array([1, 2, 3])], [2, np.array([4, 5, 6])]],
+            columns=['userId', 'vector'],
+        )
+        model._df_movie_vector = pd.DataFrame(
+            [[100, np.array([-1, -2, -3])], [200, np.array([-4, -5, -6])]],
+            columns=['movieId', 'vector'],
+        )
+        model._global_b = 0.5
+        model.save(tmpdir)
+        reloaded_model = RealValuedMatrixFactorization.load(tmpdir)
+
+        pd.testing.assert_frame_equal(reloaded_model._df_user_vector, model._df_user_vector)
+        pd.testing.assert_frame_equal(reloaded_model._df_movie_vector, model._df_movie_vector)
+        assert reloaded_model._global_b == model._global_b
