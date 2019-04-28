@@ -19,7 +19,7 @@ def execute(command, flush_filter=None, terminal_condition=None):
 
     # Poll process for new output until finished
     while True:
-        nextline = process.stdout.readline()
+        nextline = process.stdout.readline().decode('utf8')
         if len(nextline) == 0 and process.poll() is not None:
             break
 
