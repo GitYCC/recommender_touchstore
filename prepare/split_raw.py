@@ -21,6 +21,15 @@ def _select_by_movie_group(df, movie_group):
     return df[df.movieId.isin(movie_group)]
 
 
+def _prepare_like_problem(df):
+    """Convert rating problem to recommend problem."""
+    like_theshold = 3.0
+    filtered_df = df.loc[df.rating > like_theshold, :]
+    filtered_df = filtered_df.reset_index(drop=True)
+    filtered_df['like'] = 1
+    return filtered_df[['userId', 'movieId', 'like', 'timestamp']]
+
+
 def main():
     # load data
     df_ratings = pd.read_csv(os.path.join(DIR_MovieLens20M, 'ratings.csv'))
@@ -49,8 +58,13 @@ def main():
     df_genome_public = _select_by_movie_group(df_genome, old_movies)
     df_genome_private = _select_by_movie_group(df_genome, new_movies)
 
+    # create like data
+    df_likes_public = _prepare_like_problem(df_ratings_public)
+    df_likes_private = _prepare_like_problem(df_ratings_private)
+
     # save public data
     df_ratings_public.to_csv(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.csv'), index=None)
+    df_likes_public.to_csv(os.path.join(DIR_PUBLIC_DATA, 'likes_pub.csv'), index=None)
     df_tags_public.to_csv(os.path.join(DIR_PUBLIC_DATA, 'tags_pub.csv'), index=None)
     df_movies_public.to_csv(os.path.join(DIR_PUBLIC_DATA, 'movies_pub.csv'), index=None)
     df_links_public.to_csv(os.path.join(DIR_PUBLIC_DATA, 'links_pub.csv'), index=None)
@@ -58,6 +72,7 @@ def main():
 
     # save private data
     df_ratings_private.to_csv(os.path.join(WORKSPACE, 'ratings_prv.csv'), index=None)
+    df_likes_private.to_csv(os.path.join(WORKSPACE, 'likes_prv.csv'), index=None)
     df_tags_private.to_csv(os.path.join(WORKSPACE, 'tags_prv.csv'), index=None)
     df_movies_private.to_csv(os.path.join(WORKSPACE, 'movies_prv.csv'), index=None)
     df_links_private.to_csv(os.path.join(WORKSPACE, 'links_prv.csv'), index=None)
