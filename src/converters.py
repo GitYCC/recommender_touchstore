@@ -4,11 +4,12 @@ from abc import ABC, abstractmethod
 class BaseConverter(ABC):
 
     @abstractmethod
-    def convert(self, datagroup):
+    def convert(self, datagroup, problem_type='rating_problem'):
         """Convert datagroup to the format for model fitting.
 
         Args:
             datagroup (process.Datagroup): group of data includes ratings, tags, movies and genome.
+            problem_type (str): 'rating_problem' or 'like_problem'
 
         Returns:
             user_movie_pair ({array-like, sparse matrix}, shape (n_samples, 2)):
@@ -25,10 +26,16 @@ class BaseConverter(ABC):
 
 class NoContentConverter(BaseConverter):
 
-    def convert(self, datagroup):
-        df = datagroup.ratings
+    def convert(self, datagroup, problem_type='rating_problem'):
+        if problem_type == 'rating_problem':
+            df = datagroup.ratings
+            kpi = 'rating'
+        elif problem_type == 'like_problem':
+            df = datagroup.likes
+            kpi = 'like'
+
         user_movie_pair = df[['userId', 'movieId']].values
-        y = df['rating'].values
+        y = df[kpi].values
         user_feature = None
         movie_feature = None
         return (user_movie_pair, y, user_feature, movie_feature)
