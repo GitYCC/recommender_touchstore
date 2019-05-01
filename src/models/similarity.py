@@ -22,7 +22,7 @@ class ItemCosineSimilarity(BaseModel):
     def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
             valid_user_movie_pair=None, valid_y=None,
             valid_user_feature=None, valid_movie_feature=None,
-            similarity_theshold=0):
+            similarity_theshold=0, use_mean_centering=True):
         y = np.reshape(y, (y.shape[0], 1))
         content = np.hstack((user_movie_pair, y))
         df = pd.DataFrame(
@@ -46,15 +46,21 @@ class ItemCosineSimilarity(BaseModel):
         df = df[['user_index', 'movie_index', 'y']]
 
         # mean centering
-        logger.info('mean centering')
+        if use_mean_centering:
+            logger.info('mean centering')
 
-        df_center_y = df[['movie_index', 'y']] \
-            .groupby('movie_index', as_index=False, sort=False).mean() \
-            .rename(columns={'y': 'center_y'})
+            df_center_y = df[['movie_index', 'y']] \
+                .groupby('movie_index', as_index=False, sort=False).mean() \
+                .rename(columns={'y': 'center_y'})
 
-        df = pd.merge(df, df_center_y, on='movie_index')
-        df['centered_y'] = df['y'] - df['center_y']
-        df = df[['user_index', 'movie_index', 'centered_y']]
+            df = pd.merge(df, df_center_y, on='movie_index')
+            df['centered_y'] = df['y'] - df['center_y']
+            df = df[['user_index', 'movie_index', 'centered_y']]
+        else:
+            df_center_y = df_movie_id[['movie_index']]
+            df_center_y['center_y'] = 0.0
+            df = df.rename(columns={'y': 'centered_y'})
+            df = df[['user_index', 'movie_index', 'centered_y']]
 
         # calculate item similarity
         logger.info('calculate item similarity step 1: cosine')
