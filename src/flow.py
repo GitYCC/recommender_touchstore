@@ -26,6 +26,15 @@ def _get_run_id_of_datagroup(train_start_year, valid_start_year):
     return run_id
 
 
+def _get_public_datagroup():
+    datagroup = Datagroup(ratings=process.get_ratings(),
+                          likes=process.get_likes(),
+                          tags=process.get_tags(),
+                          movies=process.get_movies(),
+                          genome=process.get_genome())
+    return datagroup
+
+
 def prepare_datagroup(train_start_year, valid_start_year):
     """Prepare datagroup.
 
@@ -51,10 +60,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
     tracer.log_param('train_start_year', train_start_year)
     tracer.log_param('valid_start_year', valid_start_year)
 
-    datagroup = Datagroup(ratings=process.get_ratings(),
-                          tags=process.get_tags(),
-                          movies=process.get_movies(),
-                          genome=process.get_genome())
+    datagroup = _get_public_datagroup()
     _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
@@ -80,12 +86,11 @@ def _evaluate_question1(model, um_pair, y, u_feature, m_feature):
     return result
 
 
-def _prepare_recommend_problem(um_pair, y):
+def _prepare_recommend_problem(um_pair):
     """Convert rating problem to recommend problem."""
-    like_theshold = 3.0
     users = np.unique(um_pair[:, 0]).tolist()
     movies = np.unique(um_pair[:, 1]).tolist()
-    actions = (um_pair[y >= like_theshold]).tolist()
+    actions = um_pair.tolist()
     return (users, movies, actions)
 
 
@@ -166,8 +171,14 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     conv_class = getattr(converters, convert_method)
     conv = conv_class()
 
-    um_pair_train, y_train, u_feature_train, m_feature_train = conv.convert(train_datagroup)
-    um_pair_valid, y_valid, u_feature_valid, m_feature_valid = conv.convert(valid_datagroup)
+    if topic == 'question1':
+        problem_type = 'rating_problem'
+    else:
+        problem_type = 'like_problem'
+    um_pair_train, y_train, u_feature_train, m_feature_train = \
+        conv.convert(train_datagroup, problem_type=problem_type)
+    um_pair_valid, y_valid, u_feature_valid, m_feature_valid = \
+        conv.convert(valid_datagroup, problem_type=problem_type)
 
     # fitting
     logger.info('fit model')
@@ -189,20 +200,20 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
             _evaluate_question1(model, um_pair_valid, y_valid, u_feature_valid, m_feature_valid)
     elif topic == 'question2':
         users_train, movies_train, actions_train = \
-            _prepare_recommend_problem(um_pair_train, y_train)
+            _prepare_recommend_problem(um_pair_train)
         train_result = _evaluate_question2(model, users_train, movies_train, actions_train,
                                            u_feature_train, m_feature_train)
         users_valid, movies_valid, actions_valid = \
-            _prepare_recommend_problem(um_pair_valid, y_valid)
+            _prepare_recommend_problem(um_pair_valid)
         valid_result = _evaluate_question2(model, users_valid, movies_valid, actions_valid,
                                            u_feature_valid, m_feature_valid)
     elif topic == 'question3':
         users_train, movies_train, actions_train = \
-            _prepare_recommend_problem(um_pair_train, y_train)
+            _prepare_recommend_problem(um_pair_train)
         train_result = _evaluate_question3(model, users_train, movies_train, actions_train,
                                            u_feature_train, m_feature_train)
         users_valid, movies_valid, actions_valid = \
-            _prepare_recommend_problem(um_pair_valid, y_valid)
+            _prepare_recommend_problem(um_pair_valid)
         valid_result = _evaluate_question3(model, users_valid, movies_valid, actions_valid,
                                            u_feature_valid, m_feature_valid)
 
@@ -248,14 +259,15 @@ def deploy(convert_method, model_method, topic, model_params=None):
     # prepare data
     logger.info('prepare data')
 
-    datagroup = Datagroup(ratings=process.get_ratings(),
-                          tags=process.get_tags(),
-                          movies=process.get_movies(),
-                          genome=process.get_genome())
+    datagroup = _get_public_datagroup()
 
+    if topic == 'question1':
+        problem_type = 'rating_problem'
+    else:
+        problem_type = 'like_problem'
     conv_class = getattr(converters, convert_method)
     conv = conv_class()
-    um_pair, y, u_feature, m_feature = conv.convert(datagroup)
+    um_pair, y, u_feature, m_feature = conv.convert(datagroup, problem_type=problem_type)
 
     # fitting
     logger.info('fit model')
@@ -308,13 +320,10 @@ def test(deploy_id):
     logger.info('evaluation model')
 
     if topic == 'question1':
-        datagroup = Datagroup(ratings=process.get_ratings(),
-                              tags=process.get_tags(),
-                              movies=process.get_movies(),
-                              genome=process.get_genome())
+        datagroup = _get_public_datagroup()
         conv_class = getattr(converters, convert_method)
         conv = conv_class()
-        _, _, u_feature, m_feature = conv.convert(datagroup)
+        _, _, u_feature, m_feature = conv.convert(datagroup, problem_type='rating_problem')
 
         df = process.get_question1()
         um_pair = df[['userId', 'movieId']].values
@@ -324,13 +333,10 @@ def test(deploy_id):
         result = _evaluate_question1(model, um_pair, y, u_feature, m_feature)
 
     elif topic == 'question2':
-        datagroup = Datagroup(ratings=process.get_ratings(),
-                              tags=process.get_tags(),
-                              movies=process.get_movies(),
-                              genome=process.get_genome())
+        datagroup = _get_public_datagroup()
         conv_class = getattr(converters, convert_method)
         conv = conv_class()
-        um_pair, _, u_feature, m_feature = conv.convert(datagroup)
+        um_pair, _, u_feature, m_feature = conv.convert(datagroup, problem_type='like_problem')
 
         movies = np.unique(um_pair[:, 1]).tolist()
 
@@ -345,16 +351,17 @@ def test(deploy_id):
         result = _evaluate_question2(model, users, movies, actions, u_feature, m_feature)
 
     elif topic == 'question3':
-        datagroup_old = Datagroup(ratings=process.get_ratings(),
-                                  tags=process.get_tags(),
-                                  movies=process.get_movies(),
-                                  genome=process.get_genome())
+        datagroup_old = _get_public_datagroup()
         df_ref_movies, df_ref_genome = process.get_question3_ref()
-        datagroup_new = Datagroup(ratings=pd.Dateframe(
+        datagroup_new = Datagroup(ratings=pd.DataFrame(
                                     {'userId': [], 'movieId': [],
                                      'rating': [], 'timestamp': []}
                                   ),
-                                  tags=process.get_tags(
+                                  likes=pd.DataFrame(
+                                    {'userId': [], 'movieId': [],
+                                     'like': [], 'timestamp': []}
+                                  ),
+                                  tags=pd.DataFrame(
                                     {'userId': [], 'movieId': [],
                                      'tag': [], 'timestamp': []}
                                   ),
@@ -363,8 +370,8 @@ def test(deploy_id):
 
         conv_class = getattr(converters, convert_method)
         conv = conv_class()
-        um_pair, _, u_feature, _ = conv.convert(datagroup_old)
-        _, _, _, m_feature = conv.convert(datagroup_new)
+        um_pair, _, u_feature, _ = conv.convert(datagroup_old, problem_type='like_problem')
+        _, _, _, m_feature = conv.convert(datagroup_new, problem_type='like_problem')
 
         users = np.unique(um_pair[:, 0]).tolist()
 
@@ -376,7 +383,7 @@ def test(deploy_id):
             for user in users:
                 actions.append((user, movies[i]))
 
-        result = _evaluate_question2(model, users, movies, actions, u_feature, m_feature)
+        result = _evaluate_question3(model, users, movies, actions, u_feature, m_feature)
 
     # logging
     logger.info('logging: result={}'.format(result))

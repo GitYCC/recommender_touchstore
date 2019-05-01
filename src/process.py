@@ -7,9 +7,16 @@ import pandas as pd
 
 import config
 
+Datagroup = namedtuple('Datagroup', ['ratings', 'likes', 'tags', 'movies', 'genome'])
+
 
 def get_ratings():
     df = pd.read_csv(os.path.join(config.DIR_DATA, 'ratings_pub.csv'))
+    return df
+
+
+def get_likes():
+    df = pd.read_csv(os.path.join(config.DIR_DATA, 'likes_pub.csv'))
     return df
 
 
@@ -128,18 +135,18 @@ def select_data_by_movie_group(df_including_movieId, movie_group):  # noqa: N803
             .reset_index(drop=True))
 
 
-Datagroup = namedtuple('Datagroup', ['ratings', 'tags', 'movies', 'genome'])
-
-
 def split_datagroup(cut_year, datagroup):
     cut_dt = datetime(cut_year, 1, 1)
     df_ratings = datagroup.ratings
+    df_likes = datagroup.likes
     df_tags = datagroup.tags
     df_movies = datagroup.movies
     df_genome = datagroup.genome
 
     df_ratings_before, df_ratings_after = \
         split_data_by_datetime(df_ratings, cut_dt)
+    df_likes_before, df_likes_after = \
+        split_data_by_datetime(df_likes, cut_dt)
     df_tags_before, df_tags_after = \
         split_data_by_datetime(df_tags, cut_dt)
     df_movies_before, df_movies_after = \
@@ -148,10 +155,12 @@ def split_datagroup(cut_year, datagroup):
     df_genome_after = select_data_by_movie_group(df_genome, df_movies_after.movieId)
 
     datagroup_before = Datagroup(ratings=df_ratings_before,
+                                 likes=df_likes_before,
                                  tags=df_tags_before,
                                  movies=df_movies_before,
                                  genome=df_genome_before)
     datagroup_after = Datagroup(ratings=df_ratings_after,
+                                likes=df_likes_after,
                                 tags=df_tags_after,
                                 movies=df_movies_after,
                                 genome=df_genome_after)
@@ -160,7 +169,7 @@ def split_datagroup(cut_year, datagroup):
 
 def save_datagroup(folder, datagroup, postfix):
     paths = list()
-    for key in ['ratings', 'tags', 'movies', 'genome']:
+    for key in ['ratings', 'likes', 'tags', 'movies', 'genome']:
         df = getattr(datagroup, key)
         path = os.path.join(folder, key + '_' + postfix + '.csv')
         df.to_csv(path, index=False)
@@ -170,7 +179,7 @@ def save_datagroup(folder, datagroup, postfix):
 
 def load_datagroup(folder, postfix):
     dfs = dict()
-    for key in ['ratings', 'tags', 'movies', 'genome']:
+    for key in ['ratings', 'likes', 'tags', 'movies', 'genome']:
         dfs[key] = pd.read_csv(os.path.join(folder, key + '_' + postfix + '.csv'))
 
     # special handle on movies' genres
