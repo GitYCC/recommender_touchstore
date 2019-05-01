@@ -26,6 +26,15 @@ def _get_run_id_of_datagroup(train_start_year, valid_start_year):
     return run_id
 
 
+def _get_public_datagroup():
+    datagroup = Datagroup(ratings=process.get_ratings(),
+                          likes=process.get_likes(),
+                          tags=process.get_tags(),
+                          movies=process.get_movies(),
+                          genome=process.get_genome())
+    return datagroup
+
+
 def prepare_datagroup(train_start_year, valid_start_year):
     """Prepare datagroup.
 
@@ -51,10 +60,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
     tracer.log_param('train_start_year', train_start_year)
     tracer.log_param('valid_start_year', valid_start_year)
 
-    datagroup = Datagroup(ratings=process.get_ratings(),
-                          tags=process.get_tags(),
-                          movies=process.get_movies(),
-                          genome=process.get_genome())
+    datagroup = _get_public_datagroup()
     _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
@@ -248,10 +254,7 @@ def deploy(convert_method, model_method, topic, model_params=None):
     # prepare data
     logger.info('prepare data')
 
-    datagroup = Datagroup(ratings=process.get_ratings(),
-                          tags=process.get_tags(),
-                          movies=process.get_movies(),
-                          genome=process.get_genome())
+    datagroup = _get_public_datagroup()
 
     conv_class = getattr(converters, convert_method)
     conv = conv_class()
@@ -308,10 +311,7 @@ def test(deploy_id):
     logger.info('evaluation model')
 
     if topic == 'question1':
-        datagroup = Datagroup(ratings=process.get_ratings(),
-                              tags=process.get_tags(),
-                              movies=process.get_movies(),
-                              genome=process.get_genome())
+        datagroup = _get_public_datagroup()
         conv_class = getattr(converters, convert_method)
         conv = conv_class()
         _, _, u_feature, m_feature = conv.convert(datagroup)
@@ -324,10 +324,7 @@ def test(deploy_id):
         result = _evaluate_question1(model, um_pair, y, u_feature, m_feature)
 
     elif topic == 'question2':
-        datagroup = Datagroup(ratings=process.get_ratings(),
-                              tags=process.get_tags(),
-                              movies=process.get_movies(),
-                              genome=process.get_genome())
+        datagroup = _get_public_datagroup()
         conv_class = getattr(converters, convert_method)
         conv = conv_class()
         um_pair, _, u_feature, m_feature = conv.convert(datagroup)
@@ -345,10 +342,7 @@ def test(deploy_id):
         result = _evaluate_question2(model, users, movies, actions, u_feature, m_feature)
 
     elif topic == 'question3':
-        datagroup_old = Datagroup(ratings=process.get_ratings(),
-                                  tags=process.get_tags(),
-                                  movies=process.get_movies(),
-                                  genome=process.get_genome())
+        datagroup_old = _get_public_datagroup()
         df_ref_movies, df_ref_genome = process.get_question3_ref()
         datagroup_new = Datagroup(ratings=pd.Dateframe(
                                     {'userId': [], 'movieId': [],
