@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pandas as pd
 
 pd.options.mode.chained_assignment = None
@@ -10,23 +9,26 @@ DIR_PUBLIC_DATA = os.path.join(WORKSPACE, '..', 'data')
 
 
 def _get_old_movies():
-    df_movies_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'movies_pub.csv'))
-    return df_movies_public.movieId
+    df_movie_feature_public = \
+        pd.read_pickle(os.path.join(DIR_PUBLIC_DATA, 'movie_feature_pub.pkl'))
+    return df_movie_feature_public.movieId
 
 
 def _get_new_movies():
-    df_movies_private = pd.read_csv(os.path.join(WORKSPACE, 'movies_prv.csv'))
-    return df_movies_private.movieId
+    df_movie_feature_private = pd.read_pickle(os.path.join(WORKSPACE, 'movie_feature_prv.pkl'))
+    return df_movie_feature_private.movieId
 
 
 def prepare_question1():
     """Prepare Question 1.
 
-    Rating Problem: Design a system to predict an unknown rating when given `userId` and `movieId`.
+    Rating Problem:
+    Design a system to predict an unknown rating when given `userId` and `movieId`
+    (at `./src/data/test_q1.csv`). Evaluate results by RMSE.
 
     """
-    df_ratings_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.csv'))
-    df_ratings_private = pd.read_csv(os.path.join(WORKSPACE, 'ratings_prv.csv'))
+    df_ratings_public = pd.read_pickle(os.path.join(DIR_PUBLIC_DATA, 'ratings_pub.pkl'))
+    df_ratings_private = pd.read_pickle(os.path.join(WORKSPACE, 'ratings_prv.pkl'))
 
     old_users = df_ratings_public['userId'].unique()
     old_movies = _get_old_movies()
@@ -51,15 +53,17 @@ def prepare_question1():
 def prepare_question2():
     """Prepare Question 2.
 
-    Ranking Problem: We defined that the rating > 3.0 as a favorite movie. Design a system to
-    recommend a top-10 favorite movies for a person, a `movieId` list which `userId` did not
-    see before (provide `userId` at `./src/data/test_q2.txt`).
+    Ranking Problem:
+    We defined that the rating > 3.0 as a favorite movie (at `./src/data/likes_pub.pkl`).
+    Design a system to recommend a top-10 favorite movies for a person,
+    a `movieId` list which `userId` did not see before
+    (provide `userId` at `./src/data/test_q2.txt`). Evaluate results by MAP@10.
 
     """
     threshold_movies = 5
 
-    df_likes_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'likes_pub.csv'))
-    df_likes_private = pd.read_csv(os.path.join(WORKSPACE, 'likes_prv.csv'))
+    df_likes_public = pd.read_pickle(os.path.join(DIR_PUBLIC_DATA, 'likes_pub.pkl'))
+    df_likes_private = pd.read_pickle(os.path.join(WORKSPACE, 'likes_prv.pkl'))
 
     old_users = df_likes_public['userId'].unique()
     old_movies = _get_old_movies()
@@ -94,16 +98,17 @@ def prepare_question2():
 def prepare_question3():
     """Prepare Question 3.
 
-    Content-based Problem: We defined that the rating > 3.0 as a favorite movie.
+    Content-based Problem:
+    We defined that the rating > 3.0 as a favorite movie (at `./src/data/likes_pub.pkl`) .
     Design a system to recommend a top-10 `userId` they may like a new movie
     (at `./src/data/test_q3.txt`). We will give you some information of that new movie
-    (at `./src/data/ref_movies_q3.csv` and `./src/data/ref_genome_q3.csv`).
+    (at `./src/data/ref_movie_feature.pkl`). Evaluate results by MAP@10.
 
     """
     threshold_users = 5
 
-    df_likes_public = pd.read_csv(os.path.join(DIR_PUBLIC_DATA, 'likes_pub.csv'))
-    df_likes_private = pd.read_csv(os.path.join(WORKSPACE, 'likes_prv.csv'))
+    df_likes_public = pd.read_pickle(os.path.join(DIR_PUBLIC_DATA, 'likes_pub.pkl'))
+    df_likes_private = pd.read_pickle(os.path.join(WORKSPACE, 'likes_prv.pkl'))
 
     old_users = df_likes_public['userId'].unique()
     new_movies = _get_new_movies()
@@ -136,17 +141,14 @@ def prepare_question3():
     fw_test.close()
     fw_answer.close()
 
-    df_movies_private = pd.read_csv(os.path.join(WORKSPACE, 'movies_prv.csv'))
-    df_genome_private = pd.read_csv(os.path.join(WORKSPACE, 'genome_prv.csv'))
+    df_movie_feature_private = pd.read_pickle(os.path.join(WORKSPACE, 'movie_feature_prv.pkl'))
 
-    df_movies_ref = df_movies_private[df_movies_private.movieId.isin(selected_movies)]
-    df_genome_ref = df_genome_private[df_genome_private.movieId.isin(selected_movies)]
+    df_movie_feature_ref = \
+        df_movie_feature_private[df_movie_feature_private.movieId.isin(selected_movies)]
 
-    path_movies_ref = os.path.join(DIR_PUBLIC_DATA, 'ref_movies_q3.csv')
-    path_genome_ref = os.path.join(DIR_PUBLIC_DATA, 'ref_genome_q3.csv')
+    path_movie_feature_ref = os.path.join(DIR_PUBLIC_DATA, 'ref_movie_feature.pkl')
 
-    df_movies_ref.to_csv(path_movies_ref, index=False)
-    df_genome_ref.to_csv(path_genome_ref, index=False)
+    df_movie_feature_ref.reset_index(drop=True).to_pickle(path_movie_feature_ref)
 
 
 def main():
