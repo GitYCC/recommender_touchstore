@@ -7,17 +7,6 @@ import config
 class RatingEvaluator:
 
     def __init__(self, user_movie_pair, actu_y, pred_y):
-        """Convert datagroup to the format for model fitting.
-
-        Args:
-            user_movie_pair (numpy.array, shape (n_samples, 2)):
-                Pair of userId and movieId, where n_samples is the number of samples.
-            actu_y (numpy.array, shape (n_samples,)):
-                Actual target relative to user_movie_pair.
-            pred_y (numpy.array, shape (n_samples,)):
-                Predicted target relative to user_movie_pair.
-
-        """
         self._user_movie_pair = user_movie_pair
         self._actu_y = actu_y
         self._pred_y = pred_y
@@ -34,7 +23,6 @@ class RatingEvaluator:
 class RecommendEvaluator:
 
     def __init__(self, targets, actions, recommendations, rec_scores):
-
         self._targets = targets
         self._actions = actions
         self._recommendations = recommendations
