@@ -6,7 +6,7 @@ application-import-names =
     main,
     flow,
     tracer,
-    converters,
+    decorators,
     process,
     models,
     evaluate,
