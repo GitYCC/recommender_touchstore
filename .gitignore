@@ -121,6 +121,8 @@ venv.bak/
 # data
 prepare/*.txt
 prepare/*.csv
+prepare/*.pkl
 data/*.txt
 data/*.csv
+data/*.pkl
 tmp/*
