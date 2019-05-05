@@ -54,6 +54,5 @@ def test_save_and_load_datagroup(datagroup, tmpdir):
     process.save_datagroup(temp_dir, datagroup, 'test')
     reload_datagroup = process.load_datagroup(temp_dir, 'test')
     pd.testing.assert_frame_equal(datagroup.ratings, reload_datagroup.ratings)
-    pd.testing.assert_frame_equal(datagroup.tags, reload_datagroup.tags)
-    pd.testing.assert_frame_equal(datagroup.movies, reload_datagroup.movies)
-    pd.testing.assert_frame_equal(datagroup.genome, reload_datagroup.genome)
+    pd.testing.assert_frame_equal(datagroup.likes, reload_datagroup.likes)
+    pd.testing.assert_frame_equal(datagroup.movie_feature, reload_datagroup.movie_feature)
