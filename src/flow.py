@@ -8,7 +8,7 @@ import pandas as pd
 import tracer
 import process
 from process import Datagroup
-import converters
+import decorators
 import models
 from evaluate import RatingEvaluator, RecommendEvaluator
 
@@ -29,9 +29,8 @@ def _get_run_id_of_datagroup(train_start_year, valid_start_year):
 def _get_public_datagroup():
     datagroup = Datagroup(ratings=process.get_ratings(),
                           likes=process.get_likes(),
-                          tags=process.get_tags(),
-                          movies=process.get_movies(),
-                          genome=process.get_genome())
+                          movie_feature=process.get_movie_feature(),
+                          user_feature=None)
     return datagroup
 
 
@@ -134,31 +133,52 @@ def _evaluate_question3(model, users, movies, actions, u_feature, m_feature):
     return result
 
 
-def train(datagroup_id, convert_method, model_method, topic, model_params=None):
+def _get_fitting_params(datagroup, problem_type):
+    if problem_type == 'rating_problem':
+        df = datagroup.ratings
+        kpi = 'rating'
+    elif problem_type == 'like_problem':
+        df = datagroup.likes
+        kpi = 'like'
+
+    user_movie_pair = df[['userId', 'movieId']].values
+    y = df[kpi].values
+
+    movie_feature = datagroup.movie_feature
+    user_feature = datagroup.user_feature
+    return (user_movie_pair, y, user_feature, movie_feature)
+
+
+def train(datagroup_id, model_method, topic,
+          model_params=None, decorate_method=None, decorate_params=None):
     """Train model.
 
     Args:
         datagroup_id (int): Datagroup ID.
-        convert_method (str): Convert method defined in converters.py.
         model_method (str): Model method defined in models/.
         topic (str): "question1", "question2" or "question3"
         model_params (dict, optional): Parameters required in model training.
+        decorate_method (str, optional): Decorating method defined in decorators.py.
+        decorate_params (dict, optional): Parameters required in data decorating.
 
     Returns: None
 
     """
-    logger.info('[train model] datagroup_id={}, convert_method={}, '
-                'model_method={}, topic={}, model_params={}'
-                .format(datagroup_id, convert_method, model_method, topic, model_params))
-
-    if model_params is None:
+    if not model_params:
         model_params = dict()
+    if not decorate_params:
+        decorate_params = dict()
+
+    logger.info('[train model] datagroup_id={}, model_method={}, topic={}, model_params={}, '
+                'decorate_method={}, decorate_params={}'
+                .format(datagroup_id, model_method, topic, model_params,
+                        decorate_method, decorate_params))
 
     tracer.start_trace('train')
     tracer.log_param('datagroup_id', datagroup_id)
-    tracer.log_param('convert_method', convert_method)
     tracer.log_param('model_method', model_method)
     tracer.log_param('topic', topic)
+    tracer.log_param('decorate_method', decorate_method)
     for key, val in model_params.items():
         tracer.log_param(key, val)
 
@@ -168,20 +188,27 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     path_datagroup = tracer.get_artifact_path(datagroup_id, '.')
     train_datagroup = process.load_datagroup(path_datagroup, 'train')
     valid_datagroup = process.load_datagroup(path_datagroup, 'valid')
-    conv_class = getattr(converters, convert_method)
-    conv = conv_class()
 
     if topic == 'question1':
         problem_type = 'rating_problem'
     else:
         problem_type = 'like_problem'
-    um_pair_train, y_train, u_feature_train, m_feature_train = \
-        conv.convert(train_datagroup, problem_type=problem_type)
-    um_pair_valid, y_valid, u_feature_valid, m_feature_valid = \
-        conv.convert(valid_datagroup, problem_type=problem_type)
+
+    # data decorate
+    if decorate_method:
+        decorator_class = getattr(decorators, decorate_method)
+        decorator = decorator_class()
+
+        train_datagroup = decorator.decorate(
+            train_datagroup, problem_type=problem_type, **decorate_params)
 
     # fitting
     logger.info('fit model')
+
+    um_pair_train, y_train, u_feature_train, m_feature_train = \
+        _get_fitting_params(train_datagroup, problem_type)
+    um_pair_valid, y_valid, u_feature_valid, m_feature_valid = \
+        _get_fitting_params(valid_datagroup, problem_type)
 
     model_class = getattr(models, model_method)
     model = model_class()
@@ -231,28 +258,35 @@ def train(datagroup_id, convert_method, model_method, topic, model_params=None):
     tracer.end_trace()
 
 
-def deploy(convert_method, model_method, topic, model_params=None):
+def deploy(model_method, topic,
+           model_params=None, decorate_method=None, decorate_params=None):
     """Deploy model.
 
     Args:
-        convert_method (str): Convert method defined in converters.py.
         model_method (str): Model method defined in models/.
         topic (str): "question1", "question2" or "question3"
         model_params (dict, optional): Parameters required in model training.
+        decorate_method (str, optional): Decorating method defined in decorators.py.
+        decorate_params (dict, optional): Parameters required in data decorating.
 
-    Returns: None
+    Returns:
+        run_id (str): Run ID of deploy.
 
     """
-    logger.info('[deploy model] convert_method={}, model_method={}, topic={}, model_params={}'
-                .format(convert_method, model_method, topic, model_params))
-
-    if model_params is None:
+    if not model_params:
         model_params = dict()
+    if not decorate_params:
+        decorate_params = dict()
+
+    logger.info(
+        '[deploy model] model_method={}, topic={},'
+        ' model_params={}, decorate_method={}, decorate_params={}'
+        .format(model_method, topic, model_params, decorate_method, decorate_params))
 
     tracer.start_trace('deploy')
-    tracer.log_param('convert_method', convert_method)
     tracer.log_param('model_method', model_method)
     tracer.log_param('topic', topic)
+    tracer.log_param('decorate_method', decorate_method)
     for key, val in model_params.items():
         tracer.log_param(key, val)
 
@@ -265,12 +299,17 @@ def deploy(convert_method, model_method, topic, model_params=None):
         problem_type = 'rating_problem'
     else:
         problem_type = 'like_problem'
-    conv_class = getattr(converters, convert_method)
-    conv = conv_class()
-    um_pair, y, u_feature, m_feature = conv.convert(datagroup, problem_type=problem_type)
+
+    # data decorate
+    if decorate_method:
+        decorator_class = getattr(decorators, decorate_method)
+        decorator = decorator_class()
+        datagroup = decorator.decorate(datagroup, problem_type=problem_type, **decorate_params)
 
     # fitting
     logger.info('fit model')
+
+    um_pair, y, u_feature, m_feature = _get_fitting_params(datagroup, problem_type)
 
     model_class = getattr(models, model_method)
     model = model_class()
@@ -308,7 +347,6 @@ def test(deploy_id):
 
     model_method = deploy_params['model_method']
     topic = deploy_params['topic']
-    convert_method = deploy_params['convert_method']
 
     # load model
     logger.info('load model')
@@ -321,9 +359,8 @@ def test(deploy_id):
 
     if topic == 'question1':
         datagroup = _get_public_datagroup()
-        conv_class = getattr(converters, convert_method)
-        conv = conv_class()
-        _, _, u_feature, m_feature = conv.convert(datagroup, problem_type='rating_problem')
+
+        _, _, u_feature, m_feature = _get_fitting_params(datagroup, 'rating_problem')
 
         df = process.get_question1()
         um_pair = df[['userId', 'movieId']].values
@@ -334,9 +371,8 @@ def test(deploy_id):
 
     elif topic == 'question2':
         datagroup = _get_public_datagroup()
-        conv_class = getattr(converters, convert_method)
-        conv = conv_class()
-        um_pair, _, u_feature, m_feature = conv.convert(datagroup, problem_type='like_problem')
+
+        um_pair, _, u_feature, m_feature = _get_fitting_params(datagroup, 'like_problem')
 
         movies = np.unique(um_pair[:, 1]).tolist()
 
@@ -352,7 +388,7 @@ def test(deploy_id):
 
     elif topic == 'question3':
         datagroup_old = _get_public_datagroup()
-        df_ref_movies, df_ref_genome = process.get_question3_ref()
+        df_ref_movie_feature = process.get_question3_ref()
         datagroup_new = Datagroup(ratings=pd.DataFrame(
                                     {'userId': [], 'movieId': [],
                                      'rating': [], 'timestamp': []}
@@ -361,17 +397,11 @@ def test(deploy_id):
                                     {'userId': [], 'movieId': [],
                                      'like': [], 'timestamp': []}
                                   ),
-                                  tags=pd.DataFrame(
-                                    {'userId': [], 'movieId': [],
-                                     'tag': [], 'timestamp': []}
-                                  ),
-                                  movies=df_ref_movies,
-                                  genome=df_ref_genome)
+                                  movie_feature=df_ref_movie_feature,
+                                  user_feature=None)
 
-        conv_class = getattr(converters, convert_method)
-        conv = conv_class()
-        um_pair, _, u_feature, _ = conv.convert(datagroup_old, problem_type='like_problem')
-        _, _, _, m_feature = conv.convert(datagroup_new, problem_type='like_problem')
+        um_pair, _, u_feature, _ = _get_fitting_params(datagroup_old, 'like_problem')
+        _, _, _, m_feature = _get_fitting_params(datagroup_new, 'like_problem')
 
         users = np.unique(um_pair[:, 0]).tolist()
 

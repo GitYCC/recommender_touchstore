@@ -7,46 +7,21 @@ import pandas as pd
 
 import config
 
-Datagroup = namedtuple('Datagroup', ['ratings', 'likes', 'tags', 'movies', 'genome'])
+Datagroup = namedtuple('Datagroup', ['ratings', 'likes', 'movie_feature', 'user_feature'])
 
 
 def get_ratings():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'ratings_pub.csv'))
+    df = pd.read_pickle(os.path.join(config.DIR_DATA, 'ratings_pub.pkl'))
     return df
 
 
 def get_likes():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'likes_pub.csv'))
+    df = pd.read_pickle(os.path.join(config.DIR_DATA, 'likes_pub.pkl'))
     return df
 
 
-def _refine_movies(df):
-    df['year'] = ((df['title'].str.extract(r'\((....)\) *$'))[0].astype('float32'))
-    df = df.dropna()
-    df['year'] = df['year'].astype('int32')
-    df['title'] = (df['title'].str.extract(r'^(.*) \(....\) *$'))[0]
-    df['genres'] = df['genres'].str.split('|')
-    return df
-
-
-def get_movies():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'movies_pub.csv'))
-    df = _refine_movies(df)
-    return df
-
-
-def get_genome():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'genome_pub.csv'))
-    return df
-
-
-def get_tags():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'tags_pub.csv'))
-    return df
-
-
-def get_links():
-    df = pd.read_csv(os.path.join(config.DIR_DATA, 'links_pub.csv'))
+def get_movie_feature():
+    df = pd.read_pickle(os.path.join(config.DIR_DATA, 'movie_feature_pub.pkl'))
     return df
 
 
@@ -93,10 +68,8 @@ def get_question3():
 
 
 def get_question3_ref():
-    df_ref_movies = pd.read_csv(os.path.join(config.DIR_DATA, 'ref_movies_q3.csv'))
-    df_ref_movies = _refine_movies(df_ref_movies)
-    df_ref_genome = pd.read_csv(os.path.join(config.DIR_DATA, 'ref_genome_q3.csv'))
-    return df_ref_movies, df_ref_genome
+    df_ref_movie_feature = pd.read_pickle(os.path.join(config.DIR_DATA, 'ref_movie_feature.pkl'))
+    return df_ref_movie_feature
 
 
 def get_answer3():
@@ -139,51 +112,42 @@ def split_datagroup(cut_year, datagroup):
     cut_dt = datetime(cut_year, 1, 1)
     df_ratings = datagroup.ratings
     df_likes = datagroup.likes
-    df_tags = datagroup.tags
-    df_movies = datagroup.movies
-    df_genome = datagroup.genome
+    df_movie_feature = datagroup.movie_feature
 
     df_ratings_before, df_ratings_after = \
         split_data_by_datetime(df_ratings, cut_dt)
     df_likes_before, df_likes_after = \
         split_data_by_datetime(df_likes, cut_dt)
-    df_tags_before, df_tags_after = \
-        split_data_by_datetime(df_tags, cut_dt)
-    df_movies_before, df_movies_after = \
-        split_data_by_year(df_movies, cut_year)
-    df_genome_before = select_data_by_movie_group(df_genome, df_movies_before.movieId)
-    df_genome_after = select_data_by_movie_group(df_genome, df_movies_after.movieId)
+    df_movie_feature_before, df_movie_feature_after = \
+        split_data_by_year(df_movie_feature, cut_year)
 
     datagroup_before = Datagroup(ratings=df_ratings_before,
                                  likes=df_likes_before,
-                                 tags=df_tags_before,
-                                 movies=df_movies_before,
-                                 genome=df_genome_before)
+                                 movie_feature=df_movie_feature_before,
+                                 user_feature=None)
     datagroup_after = Datagroup(ratings=df_ratings_after,
                                 likes=df_likes_after,
-                                tags=df_tags_after,
-                                movies=df_movies_after,
-                                genome=df_genome_after)
+                                movie_feature=df_movie_feature_after,
+                                user_feature=None)
     return (datagroup_before, datagroup_after)
 
 
 def save_datagroup(folder, datagroup, postfix):
     paths = list()
-    for key in ['ratings', 'likes', 'tags', 'movies', 'genome']:
+    for key in ['ratings', 'likes', 'movie_feature', 'user_feature']:
         df = getattr(datagroup, key)
-        path = os.path.join(folder, key + '_' + postfix + '.csv')
-        df.to_csv(path, index=False)
-        paths.append(path)
+        if df is not None:
+            path = os.path.join(folder, key + '_' + postfix + '.pkl')
+            df.to_pickle(path)
+            paths.append(path)
     return paths
 
 
 def load_datagroup(folder, postfix):
     dfs = dict()
-    for key in ['ratings', 'likes', 'tags', 'movies', 'genome']:
-        dfs[key] = pd.read_csv(os.path.join(folder, key + '_' + postfix + '.csv'))
-
-    # special handle on movies' genres
-    dfs['movies']['genres'] = dfs['movies']['genres'].map(lambda x: eval(x))
+    for key in ['ratings', 'likes', 'movie_feature', 'user_feature']:
+        path = os.path.join(folder, key + '_' + postfix + '.pkl')
+        dfs[key] = pd.read_pickle(path) if os.path.exists(path) else None
 
     datagroup = Datagroup(**dfs)
     return datagroup

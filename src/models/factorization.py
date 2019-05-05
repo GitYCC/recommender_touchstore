@@ -10,6 +10,8 @@ import pickle
 import numpy as np
 import pandas as pd
 
+from .model import BaseModel
+
 ROOT_DIR = os.path.split(os.path.abspath(__file__))[0]
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -261,7 +263,7 @@ class LIBMFConnecter:
         return (train_err, valid_err, overfit_rate)
 
 
-class RealValuedMatrixFactorization():
+class RealValuedMatrixFactorization(BaseModel):
     def __init__(self):
         self._df_user_vector = None
         self._df_movie_vector = None
