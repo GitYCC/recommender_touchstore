@@ -6,6 +6,7 @@ import signal
 import logging
 from tempfile import TemporaryDirectory
 import pickle
+from abc import abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -263,7 +264,7 @@ class LIBMFConnecter:
         return (train_err, valid_err, overfit_rate)
 
 
-class RealValuedMatrixFactorization(BaseModel):
+class MatrixFactorizationBase(BaseModel):
     def __init__(self):
         self._df_user_vector = None
         self._df_movie_vector = None
@@ -271,6 +272,10 @@ class RealValuedMatrixFactorization(BaseModel):
 
     def _has_vaildation(self, valid_user_movie_pair, valid_y):
         return valid_user_movie_pair is not None and valid_y is not None
+
+    @abstractmethod
+    def _get_model_type(self):
+        pass
 
     def fit(self, user_movie_pair, y, user_feature=None, movie_feature=None,
             valid_user_movie_pair=None, valid_y=None,
@@ -313,11 +318,12 @@ class RealValuedMatrixFactorization(BaseModel):
                 LIBMFConnecter.save_matrix_with_indexer(
                     valid_df, valid_matrix_path, user_indexer, movie_indexer)
 
-            # fit RVMF
-            logger.info('fit RVMF with dim={}, epoch={}, lr={}, l1={}, l2={}'
-                        .format(dim, epoch, lr, l1, l2))
+            # user libmf to fit
+            model_type = self._get_model_type()
+            logger.info('fit {} with dim={}, epoch={}, lr={}, l1={}, l2={}'
+                        .format(model_type, dim, epoch, lr, l1, l2))
 
-            LIBMFConnecter.train(method='RVMF', dim=dim, epoch=epoch, lr=lr,
+            LIBMFConnecter.train(method=model_type, dim=dim, epoch=epoch, lr=lr,
                                  pth_train=train_matrix_path, pth_model=model_path,
                                  pth_log=log_path, pth_valid=valid_matrix_path, l1=l1, l2=l2)
             df_user_vector, df_movie_vector, user_dim, item_dim, dim, global_b = \
@@ -353,7 +359,7 @@ class RealValuedMatrixFactorization(BaseModel):
 
     @classmethod
     def load(cls, local_dir):
-        instance = RealValuedMatrixFactorization()
+        instance = cls()
         instance._df_user_vector = pd.read_pickle(str(local_dir / 'df_user_vector.pkl'))
         instance._df_movie_vector = pd.read_pickle(str(local_dir / 'df_movie_vector.pkl'))
         with open(str(local_dir / 'global_b.pkl'), 'rb') as input_file:
@@ -365,3 +371,9 @@ class RealValuedMatrixFactorization(BaseModel):
         self._df_movie_vector.to_pickle(str(local_dir / 'df_movie_vector.pkl'))
         with open(str(local_dir / 'global_b.pkl'), 'wb') as output_file:
             pickle.dump(self._global_b, output_file)
+
+
+class RealValuedMatrixFactorization(MatrixFactorizationBase):
+
+    def _get_model_type(self):
+        return 'RVMF'
