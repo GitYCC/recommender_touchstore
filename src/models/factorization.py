@@ -337,16 +337,18 @@ class RealValuedMatrixFactorization(BaseModel):
                .rename(columns={'vector': 'user_vector'})
         df = pd.merge(df, self._df_movie_vector, how='left', on=['movieId']) \
                .rename(columns={'vector': 'movie_vector'})
+        df = df.reset_index(drop=True)
 
-        def calculate_rating(row):
-            user_vector = row['user_vector']
-            movie_vector = row['movie_vector']
-            if np.isnan(user_vector).any() or np.isnan(movie_vector).any():
-                return self._global_b
-            else:
-                return np.dot(user_vector, movie_vector)
+        df['rating'] = self._global_b
 
-        df['rating'] = df.apply(calculate_rating, axis=1)
+        where_nan_row = df.isnull().any(axis=1)
+        df_full = df.loc[~where_nan_row, :]
+        user_vectors = np.array(df_full['user_vector'].values.tolist())
+        movie_vectors = np.array(df_full['movie_vector'].values.tolist())
+        df.loc[~where_nan_row, 'rating'] = np.sum(user_vectors * movie_vectors, axis=1)
+
+        df['rating'] = df['rating'].fillna(self._global_b)
+
         return df['rating'].values
 
     @classmethod
