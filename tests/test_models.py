@@ -75,8 +75,9 @@ class TestPopularityModel:
 
         model = model.fit(user_movie_pair_1, ratings_1)
 
+        df = model._df_rating_avg
         for movie in [100, 101, 102, 103, 104, 105]:
-            assert model._rating_avg[movie] == self.case1_movie_popularity[movie]
+            assert df.loc[df.movieId == movie, 'y'].values == self.case1_movie_popularity[movie]
 
     def test_predict__use_case1_predict_opp__right_ratings(
             self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
@@ -107,7 +108,10 @@ class TestPopularityModel:
 
     def test_save_and_load__do__restore(self, tmpdir):
         model = PopularityModel()
-        model._rating_avg = {1: 0.2, 2: 0.5}
+        model._df_rating_avg = pd.DataFrame(
+            [(1, 0.2), (2, 0.5)],
+            columns=['movieId', 'y'],
+        )
         model.save(tmpdir)
         reloaded_model = PopularityModel.load(tmpdir)
         assert reloaded_model._rating_avg == model._rating_avg
@@ -298,6 +302,54 @@ class TestRealValuedMatrixFactorization:
 
         assert (expected_diff[:3] < config.FLOAT_EPSILN).all()
         assert expected_diff[3] < 1.0
+
+    def test_predict__include_nan_vector__right_ratings(self, _non_full_matrix, _full_matrix):
+        df_user_vector = pd.DataFrame(
+            [(0, np.array([1., 2., 3.])), (1, np.array([-1., -2., -3.]))],
+            columns=['userId', 'vector'],
+        )
+        df_movie_vector = pd.DataFrame(
+            [(100, np.array([0., 1., 3.])), (101, np.array([np.nan, np.nan, np.nan]))],
+            columns=['movieId', 'vector'],
+        )
+        global_b = 123
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+
+        model = RealValuedMatrixFactorization()
+        model._df_user_vector = df_user_vector
+        model._df_movie_vector = df_movie_vector
+        model._global_b = global_b
+
+        pred = model.predict(user_movie_pair)
+
+        expected_ratings = np.array([11., 123., -11.])
+        expected_diff = np.absolute(expected_ratings - pred)
+
+        assert (expected_diff < config.FLOAT_EPSILN).all()
+
+    def test_predict__include_unknown__right_ratings(self, _non_full_matrix, _full_matrix):
+        df_user_vector = pd.DataFrame(
+            [(0, np.array([1., 2., 3.])), (1, np.array([-1., -2., -3.]))],
+            columns=['userId', 'vector'],
+        )
+        df_movie_vector = pd.DataFrame(
+            [(100, np.array([0., 1., 3.]))],
+            columns=['movieId', 'vector'],
+        )
+        global_b = 123
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+
+        model = RealValuedMatrixFactorization()
+        model._df_user_vector = df_user_vector
+        model._df_movie_vector = df_movie_vector
+        model._global_b = global_b
+
+        pred = model.predict(user_movie_pair)
+
+        expected_ratings = np.array([11., 123., -11.])
+        expected_diff = np.absolute(expected_ratings - pred)
+
+        assert (expected_diff < config.FLOAT_EPSILN).all()
 
     def test_save_and_load__do__restore(self, tmpdir):
         model = RealValuedMatrixFactorization()
