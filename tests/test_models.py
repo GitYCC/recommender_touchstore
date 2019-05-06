@@ -75,8 +75,9 @@ class TestPopularityModel:
 
         model = model.fit(user_movie_pair_1, ratings_1)
 
+        df = model._df_rating_avg
         for movie in [100, 101, 102, 103, 104, 105]:
-            assert model._rating_avg[movie] == self.case1_movie_popularity[movie]
+            assert df.loc[df.movieId == movie, 'y'].values == self.case1_movie_popularity[movie]
 
     def test_predict__use_case1_predict_opp__right_ratings(
             self, user_movie_pair_1, ratings_1, user_movie_pair_1_opp):
@@ -107,7 +108,10 @@ class TestPopularityModel:
 
     def test_save_and_load__do__restore(self, tmpdir):
         model = PopularityModel()
-        model._rating_avg = {1: 0.2, 2: 0.5}
+        model._df_rating_avg = pd.DataFrame(
+            [(1, 0.2), (2, 0.5)],
+            columns=['movieId', 'y'],
+        )
         model.save(tmpdir)
         reloaded_model = PopularityModel.load(tmpdir)
         assert reloaded_model._rating_avg == model._rating_avg
