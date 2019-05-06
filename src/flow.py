@@ -199,7 +199,7 @@ def train(datagroup_id, model_method, topic,
         decorator_class = getattr(decorators, decorate_method)
         decorator = decorator_class()
 
-        train_datagroup = decorator.decorate(
+        decorated_train_datagroup = decorator.decorate(
             train_datagroup, problem_type=problem_type, **decorate_params)
 
     # fitting
@@ -209,13 +209,21 @@ def train(datagroup_id, model_method, topic,
         _get_fitting_params(train_datagroup, problem_type)
     um_pair_valid, y_valid, u_feature_valid, m_feature_valid = \
         _get_fitting_params(valid_datagroup, problem_type)
+    if decorate_method:
+        um_pair_decorated, y_decorated, u_feature_decorated, m_feature_decorated = \
+            _get_fitting_params(decorated_train_datagroup, problem_type)
 
     model_class = getattr(models, model_method)
     model = model_class()
 
-    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
-              um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
-              **model_params)
+    if decorate_method:
+        model.fit(um_pair_decorated, y_decorated, u_feature_decorated, m_feature_decorated,
+                  um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
+                  **model_params)
+    else:
+        model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
+                  um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
+                  **model_params)
 
     # evaluation
     logger.info('evaluation model')
