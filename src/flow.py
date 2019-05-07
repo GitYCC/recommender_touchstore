@@ -229,35 +229,20 @@ def train(datagroup_id, model_method, topic,
     logger.info('evaluation model')
 
     if topic == 'question1':
-        train_result = \
-            _evaluate_question1(model, um_pair_train, y_train, u_feature_train, m_feature_train)
         valid_result = \
             _evaluate_question1(model, um_pair_valid, y_valid, u_feature_valid, m_feature_valid)
     elif topic == 'question2':
-        users_train, movies_train, actions_train = \
-            _prepare_recommend_problem(um_pair_train)
-        train_result = _evaluate_question2(model, users_train, movies_train, actions_train,
-                                           u_feature_train, m_feature_train)
         users_valid, movies_valid, actions_valid = \
             _prepare_recommend_problem(um_pair_valid)
         valid_result = _evaluate_question2(model, users_valid, movies_valid, actions_valid,
                                            u_feature_valid, m_feature_valid)
     elif topic == 'question3':
-        users_train, movies_train, actions_train = \
-            _prepare_recommend_problem(um_pair_train)
-        train_result = _evaluate_question3(model, users_train, movies_train, actions_train,
-                                           u_feature_train, m_feature_train)
         users_valid, movies_valid, actions_valid = \
             _prepare_recommend_problem(um_pair_valid)
         valid_result = _evaluate_question3(model, users_valid, movies_valid, actions_valid,
                                            u_feature_valid, m_feature_valid)
 
     # logging
-    logger.info('logging: train_result={}'.format(train_result))
-
-    for key, val in train_result.items():
-        tracer.log_metric('train.{}'.format(key), val)
-
     logger.info('logging: valid_result={}'.format(valid_result))
 
     for key, val in valid_result.items():
