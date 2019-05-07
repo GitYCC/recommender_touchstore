@@ -377,3 +377,9 @@ class RealValuedMatrixFactorization(MatrixFactorizationBase):
 
     def _get_model_type(self):
         return 'RVMF'
+
+
+class BinaryMatrixFactorization(MatrixFactorizationBase):
+
+    def _get_model_type(self):
+        return 'BMF'
