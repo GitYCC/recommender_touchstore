@@ -188,6 +188,7 @@ def train(datagroup_id, model_method, topic,
     path_datagroup = tracer.get_artifact_path(datagroup_id, '.')
     train_datagroup = process.load_datagroup(path_datagroup, 'train')
     valid_datagroup = process.load_datagroup(path_datagroup, 'valid')
+    evaluate_datagroup = process.load_datagroup(path_datagroup, 'valid')
 
     if topic == 'question1':
         problem_type = 'rating_problem'
@@ -199,8 +200,10 @@ def train(datagroup_id, model_method, topic,
         decorator_class = getattr(decorators, decorate_method)
         decorator = decorator_class()
 
-        decorated_train_datagroup = decorator.decorate(
+        train_datagroup = decorator.decorate(
             train_datagroup, problem_type=problem_type, **decorate_params)
+        valid_datagroup = decorator.decorate(
+            valid_datagroup, problem_type=problem_type, **decorate_params)
 
     # fitting
     logger.info('fit model')
@@ -209,38 +212,32 @@ def train(datagroup_id, model_method, topic,
         _get_fitting_params(train_datagroup, problem_type)
     um_pair_valid, y_valid, u_feature_valid, m_feature_valid = \
         _get_fitting_params(valid_datagroup, problem_type)
-    if decorate_method:
-        um_pair_decorated, y_decorated, u_feature_decorated, m_feature_decorated = \
-            _get_fitting_params(decorated_train_datagroup, problem_type)
 
     model_class = getattr(models, model_method)
     model = model_class()
 
-    if decorate_method:
-        model.fit(um_pair_decorated, y_decorated, u_feature_decorated, m_feature_decorated,
-                  um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
-                  **model_params)
-    else:
-        model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
-                  um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
-                  **model_params)
+    model.fit(um_pair_train, y_train, u_feature_train, m_feature_train,
+              um_pair_valid, y_valid, u_feature_valid, m_feature_valid,
+              **model_params)
 
     # evaluation
     logger.info('evaluation model')
+    um_pair_eval, y_eval, u_feature_eval, m_feature_eval = \
+        _get_fitting_params(evaluate_datagroup, problem_type)
 
     if topic == 'question1':
         valid_result = \
-            _evaluate_question1(model, um_pair_valid, y_valid, u_feature_valid, m_feature_valid)
+            _evaluate_question1(model, um_pair_eval, y_eval, u_feature_eval, m_feature_eval)
     elif topic == 'question2':
-        users_valid, movies_valid, actions_valid = \
-            _prepare_recommend_problem(um_pair_valid)
-        valid_result = _evaluate_question2(model, users_valid, movies_valid, actions_valid,
-                                           u_feature_valid, m_feature_valid)
+        users_eval, movies_eval, actions_eval = \
+            _prepare_recommend_problem(um_pair_eval)
+        valid_result = _evaluate_question2(model, users_eval, movies_eval, actions_eval,
+                                           u_feature_eval, m_feature_eval)
     elif topic == 'question3':
-        users_valid, movies_valid, actions_valid = \
-            _prepare_recommend_problem(um_pair_valid)
-        valid_result = _evaluate_question3(model, users_valid, movies_valid, actions_valid,
-                                           u_feature_valid, m_feature_valid)
+        users_eval, movies_eval, actions_eval = \
+            _prepare_recommend_problem(um_pair_eval)
+        valid_result = _evaluate_question3(model, users_eval, movies_eval, actions_eval,
+                                           u_feature_eval, m_feature_eval)
 
     # logging
     logger.info('logging: valid_result={}'.format(valid_result))
