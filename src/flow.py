@@ -174,14 +174,6 @@ def train(datagroup_id, model_method, topic,
                 .format(datagroup_id, model_method, topic, model_params,
                         decorate_method, decorate_params))
 
-    tracer.start_trace('train')
-    tracer.log_param('datagroup_id', datagroup_id)
-    tracer.log_param('model_method', model_method)
-    tracer.log_param('topic', topic)
-    tracer.log_param('decorate_method', decorate_method)
-    for key, val in model_params.items():
-        tracer.log_param(key, val)
-
     # prepare data
     logger.info('prepare data')
 
@@ -241,6 +233,14 @@ def train(datagroup_id, model_method, topic,
 
     # logging
     logger.info('logging: valid_result={}'.format(valid_result))
+
+    tracer.start_trace('train')
+    tracer.log_param('datagroup_id', datagroup_id)
+    tracer.log_param('model_method', model_method)
+    tracer.log_param('topic', topic)
+    tracer.log_param('decorate_method', decorate_method)
+    for key, val in model_params.items():
+        tracer.log_param(key, val)
 
     for key, val in valid_result.items():
         tracer.log_metric('valid.{}'.format(key), val)
