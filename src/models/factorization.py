@@ -383,3 +383,9 @@ class BinaryMatrixFactorization(MatrixFactorizationBase):
 
     def _get_model_type(self):
         return 'BMF'
+
+
+class OneClassMatrixFactorization(MatrixFactorizationBase):
+
+    def _get_model_type(self):
+        return 'OCMF'
