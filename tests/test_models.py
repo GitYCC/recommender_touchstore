@@ -10,7 +10,9 @@ from models.model import BaseModel
 from models import PopularityModel
 from models import ItemCosineSimilarity
 from models.factorization import LIBMFConnecter
-from models import RealValuedMatrixFactorization, BinaryMatrixFactorization
+from models import (RealValuedMatrixFactorization,
+                    BinaryMatrixFactorization,
+                    OneClassMatrixFactorization)
 
 ROOT_DIR = os.path.split(os.path.abspath(__file__))[0]
 
@@ -486,6 +488,106 @@ class TestBinaryMatrixFactorization:
         model._global_b = 0.5
         model.save(tmpdir)
         reloaded_model = BinaryMatrixFactorization.load(tmpdir)
+
+        pd.testing.assert_frame_equal(reloaded_model._df_user_vector, model._df_user_vector)
+        pd.testing.assert_frame_equal(reloaded_model._df_movie_vector, model._df_movie_vector)
+        assert reloaded_model._global_b == model._global_b
+
+
+class TestOneClassMatrixFactorization:
+
+    def test_fit__use_case1__right_global_b(self, user_movie_pair_1, ratings_1_one_class):
+        model = OneClassMatrixFactorization()
+
+        model = model.fit(user_movie_pair_1, ratings_1_one_class,
+                          dim=3, epoch=10, lr=0.1, l1=0.0, l2=0.0)
+
+        expected_global_b = 1
+        assert (expected_global_b - config.FLOAT_EPSILN <
+                model._global_b < expected_global_b + config.FLOAT_EPSILN)
+
+    @pytest.fixture
+    def _non_full_matrix(self):
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+        ratings = np.array([1., 1., 1.])
+        return user_movie_pair, ratings
+
+    def test_fit__non_full_matrix__right_order(self, _non_full_matrix):
+        user_movie_pair, ratings = _non_full_matrix
+
+        model = OneClassMatrixFactorization()
+        model = model.fit(user_movie_pair, ratings, dim=5, epoch=500, lr=0.05, l1=0.0, l2=0.0)
+
+        p = np.array([list(vector) for vector in model._df_user_vector['vector'].values])
+        q = np.array([list(vector) for vector in model._df_movie_vector['vector'].values])
+
+        values = np.reshape(np.matmul(p, q.T), (-1,))
+
+        assert values[0] > values[3]
+        assert values[1] > values[3]
+        assert values[2] > values[3]
+
+    def test_predict__include_nan_vector__right_ratings(self):
+        df_user_vector = pd.DataFrame(
+            [(0, np.array([1., 2., 3.])), (1, np.array([-1., -2., -3.]))],
+            columns=['userId', 'vector'],
+        )
+        df_movie_vector = pd.DataFrame(
+            [(100, np.array([0., 1., 3.])), (101, np.array([np.nan, np.nan, np.nan]))],
+            columns=['movieId', 'vector'],
+        )
+        global_b = 123
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+
+        model = OneClassMatrixFactorization()
+        model._df_user_vector = df_user_vector
+        model._df_movie_vector = df_movie_vector
+        model._global_b = global_b
+
+        pred = model.predict(user_movie_pair)
+
+        expected_ratings = np.array([11., 123., -11.])
+        expected_diff = np.absolute(expected_ratings - pred)
+
+        assert (expected_diff < config.FLOAT_EPSILN).all()
+
+    def test_predict__include_unknown__right_ratings(self):
+        df_user_vector = pd.DataFrame(
+            [(0, np.array([1., 2., 3.])), (1, np.array([-1., -2., -3.]))],
+            columns=['userId', 'vector'],
+        )
+        df_movie_vector = pd.DataFrame(
+            [(100, np.array([0., 1., 3.]))],
+            columns=['movieId', 'vector'],
+        )
+        global_b = 123
+        user_movie_pair = np.array([[0, 100], [0, 101], [1, 100]])
+
+        model = OneClassMatrixFactorization()
+        model._df_user_vector = df_user_vector
+        model._df_movie_vector = df_movie_vector
+        model._global_b = global_b
+
+        pred = model.predict(user_movie_pair)
+
+        expected_ratings = np.array([11., 123., -11.])
+        expected_diff = np.absolute(expected_ratings - pred)
+
+        assert (expected_diff < config.FLOAT_EPSILN).all()
+
+    def test_save_and_load__do__restore(self, tmpdir):
+        model = OneClassMatrixFactorization()
+        model._df_user_vector = pd.DataFrame(
+            [[1, np.array([1, 2, 3])], [2, np.array([4, 5, 6])]],
+            columns=['userId', 'vector'],
+        )
+        model._df_movie_vector = pd.DataFrame(
+            [[100, np.array([-1, -2, -3])], [200, np.array([-4, -5, -6])]],
+            columns=['movieId', 'vector'],
+        )
+        model._global_b = 0.5
+        model.save(tmpdir)
+        reloaded_model = OneClassMatrixFactorization.load(tmpdir)
 
         pd.testing.assert_frame_equal(reloaded_model._df_user_vector, model._df_user_vector)
         pd.testing.assert_frame_equal(reloaded_model._df_movie_vector, model._df_movie_vector)
