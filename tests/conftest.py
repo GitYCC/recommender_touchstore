@@ -58,6 +58,14 @@ def ratings_1_binary():
                      1., 1., 1.])
 
 
+@pytest.fixture
+def ratings_1_one_class():
+    return np.array([1., 1., 1.,
+                     1., 1., 1.,
+                     1., 1., 1.,
+                     1., 1., 1.])
+
+
 # user_movie_pair_1_opp
 # users/movies  100  101  102  103  104  105
 # 0              -    -    o    -    o    o
