@@ -240,7 +240,10 @@ def train(datagroup_id, model_method, topic,
     tracer.log_param('topic', topic)
     tracer.log_param('decorate_method', decorate_method)
     for key, val in model_params.items():
-        tracer.log_param(key, val)
+        tracer.log_param('model.' + key, val)
+    if decorate_method:
+        for key, val in decorate_params.items():
+            tracer.log_param('decorate.' + key, val)
 
     for key, val in valid_result.items():
         tracer.log_metric('valid.{}'.format(key), val)
@@ -273,13 +276,6 @@ def deploy(model_method, topic,
         ' model_params={}, decorate_method={}, decorate_params={}'
         .format(model_method, topic, model_params, decorate_method, decorate_params))
 
-    tracer.start_trace('deploy')
-    tracer.log_param('model_method', model_method)
-    tracer.log_param('topic', topic)
-    tracer.log_param('decorate_method', decorate_method)
-    for key, val in model_params.items():
-        tracer.log_param(key, val)
-
     # prepare data
     logger.info('prepare data')
 
@@ -307,11 +303,19 @@ def deploy(model_method, topic,
     model.fit(um_pair, y, u_feature, m_feature, **model_params)
 
     # save
+    tracer.start_trace('deploy')
     run_id = tracer.get_current_run_id()
     logger.info('save model: run_id={}'.format(run_id))
 
+    tracer.log_param('model_method', model_method)
+    tracer.log_param('topic', topic)
+    tracer.log_param('decorate_method', decorate_method)
+    for key, val in model_params.items():
+        tracer.log_param('model.' + key, val)
+    if decorate_method:
+        for key, val in decorate_params.items():
+            tracer.log_param('decorate.' + key, val)
     tracer.log_model(model)
-
     tracer.end_trace()
     return run_id
 
