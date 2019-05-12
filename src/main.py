@@ -19,10 +19,13 @@ def main():
     # decorate_method = 'NegativeDataDecorator'
     # decorate_params = dict(negative_data_ratio=1.0, negative_data_value=0)
 
-    model_method = 'BinaryMatrixFactorization'
-    model_params = dict(dim=5, epoch=500, lr=0.01, l1=0.0, l2=0.0)
-    decorate_method = 'NegativeDataDecorator'
-    decorate_params = dict(negative_data_ratio=1.0, negative_data_value=-1.0)
+    # model_method = 'BinaryMatrixFactorization'
+    # model_params = dict(dim=5, epoch=500, lr=0.01, l1=0.0, l2=0.0)
+    # decorate_method = 'NegativeDataDecorator'
+    # decorate_params = dict(negative_data_ratio=1.0, negative_data_value=-1.0)
+
+    model_method = 'OneClassMatrixFactorization'
+    model_params = dict(dim=5, epoch=500, lr=0.005, l1=0.0, l2=0.0)
 
     datagroup_id = flow.prepare_datagroup(train_start_year, valid_start_year)
     flow.train(datagroup_id, model_method, topic, model_params=model_params,
