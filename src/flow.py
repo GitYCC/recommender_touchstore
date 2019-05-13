@@ -93,11 +93,12 @@ def _prepare_recommend_problem(um_pair):
     return (users, movies, actions)
 
 
-def _evaluate_question2(model, users, movies, actions, u_feature, m_feature):
+def _evaluate_question2(model, users, movies, actions, u_feature, m_feature, old_actions):
     evaluation_size = 10
 
     rec_items, rec_scores = \
-        model.recommend('movie', users, movies, u_feature, m_feature, maxsize=evaluation_size)
+        model.recommend('movie', users, movies, u_feature, m_feature, maxsize=evaluation_size,
+                        remove_old_actions=old_actions)
 
     user_action_dict = defaultdict(lambda: list())
     for userId, movieId in actions:
@@ -113,11 +114,12 @@ def _evaluate_question2(model, users, movies, actions, u_feature, m_feature):
     return result
 
 
-def _evaluate_question3(model, users, movies, actions, u_feature, m_feature):
+def _evaluate_question3(model, users, movies, actions, u_feature, m_feature, old_actions):
     evaluation_size = 10
 
     rec_items, rec_scores = \
-        model.recommend('user', users, movies, u_feature, m_feature, maxsize=evaluation_size)
+        model.recommend('user', users, movies, u_feature, m_feature, maxsize=evaluation_size,
+                        remove_old_actions=old_actions)
 
     movie_action_dict = defaultdict(lambda: list())
     for userId, movieId in actions:
@@ -221,15 +223,15 @@ def train(datagroup_id, model_method, topic,
         valid_result = \
             _evaluate_question1(model, um_pair_eval, y_eval, u_feature_eval, m_feature_eval)
     elif topic == 'question2':
-        users_eval, movies_eval, actions_eval = \
-            _prepare_recommend_problem(um_pair_eval)
+        _, _, old_actions = _prepare_recommend_problem(um_pair_train)
+        users_eval, movies_eval, actions_eval = _prepare_recommend_problem(um_pair_eval)
         valid_result = _evaluate_question2(model, users_eval, movies_eval, actions_eval,
-                                           u_feature_eval, m_feature_eval)
+                                           u_feature_eval, m_feature_eval, old_actions)
     elif topic == 'question3':
-        users_eval, movies_eval, actions_eval = \
-            _prepare_recommend_problem(um_pair_eval)
+        _, _, old_actions = _prepare_recommend_problem(um_pair_train)
+        users_eval, movies_eval, actions_eval = _prepare_recommend_problem(um_pair_eval)
         valid_result = _evaluate_question3(model, users_eval, movies_eval, actions_eval,
-                                           u_feature_eval, m_feature_eval)
+                                           u_feature_eval, m_feature_eval, old_actions)
 
     # logging
     logger.info('logging: valid_result={}'.format(valid_result))
@@ -378,7 +380,10 @@ def test(deploy_id):
             for movie in movies:
                 actions.append((users[i], movie))
 
-        result = _evaluate_question2(model, users, movies, actions, u_feature, m_feature)
+        _, _, old_actions = _prepare_recommend_problem(um_pair)
+
+        result = _evaluate_question2(
+            model, users, movies, actions, u_feature, m_feature, old_actions)
 
     elif topic == 'question3':
         datagroup_old = _get_public_datagroup()
@@ -407,7 +412,10 @@ def test(deploy_id):
             for user in users:
                 actions.append((user, movies[i]))
 
-        result = _evaluate_question3(model, users, movies, actions, u_feature, m_feature)
+        _, _, old_actions = _prepare_recommend_problem(um_pair)
+
+        result = _evaluate_question3(
+            model, users, movies, actions, u_feature, m_feature, old_actions)
 
     # logging
     logger.info('logging: result={}'.format(result))

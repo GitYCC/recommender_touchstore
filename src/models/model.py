@@ -63,8 +63,11 @@ class BaseModel(ABC):
 
         """
 
-    def _recommend_for_users(self, users, movies, user_feature, movie_feature, maxsize):
-        user_movie_pair = np.array([[u, m] for m in movies for u in users], dtype='uint32')
+    def _recommend_for_users(self, users, movies, user_feature, movie_feature, maxsize,
+                             remove_old_actions_set):
+        user_movie_pair = np.array(
+            [(u, m) for m in movies for u in users if (u, m) not in remove_old_actions_set],
+            dtype='uint32')
         user_index_mapping = {u: i for i, u in enumerate(users)}
 
         predicted = self.predict(user_movie_pair,
@@ -101,8 +104,11 @@ class BaseModel(ABC):
 
         return (rec_items, rec_scores)
 
-    def _recommend_for_movies(self, movies, users, user_feature, movie_feature, maxsize):
-        user_movie_pair = np.array([[u, m] for u in users for m in movies], dtype='uint32')
+    def _recommend_for_movies(self, movies, users, user_feature, movie_feature, maxsize,
+                              remove_old_actions_set):
+        user_movie_pair = np.array(
+            [[u, m] for u in users for m in movies if (u, m) not in remove_old_actions_set],
+            dtype='uint32')
         movie_index_mapping = {m: i for i, m in enumerate(movies)}
 
         predicted = self.predict(user_movie_pair,
@@ -140,7 +146,7 @@ class BaseModel(ABC):
         return (rec_items, rec_scores)
 
     def recommend(self, recommended_type, users, movies, user_feature=None, movie_feature=None,
-                  maxsize=None):
+                  maxsize=None, remove_old_actions=None):
         """Recommend items from type.
 
         Args:
@@ -153,14 +159,18 @@ class BaseModel(ABC):
                 Given more feature content about user.
             movie_feature (pandas.Dataframe, optional):
                 Given more feature content about movie.
-            maxsize (int):
+            maxsize (int, optional):
                 Count of recommendation items
+            remove_old_actions (list of list, optional):
+                Avoid to recommend old actions.
 
         Returns:
             recommended_items (array-like, shape (n_targets, n_recommended_items)):
                 Recommended items in the order of predicted ranking.
 
         """
+        remove_old_actions_set = \
+            set([tuple(x) for x in remove_old_actions]) if remove_old_actions else set()
         rec_items, rec_scores = None, None
 
         batch_num = 100
@@ -172,7 +182,8 @@ class BaseModel(ABC):
                 for i in range(math.ceil(user_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, user_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_users(
-                        users[start:end], movies, user_feature, movie_feature, maxsize)
+                        users[start:end], movies, user_feature, movie_feature, maxsize,
+                        remove_old_actions_set)
                     if rec_items is None and rec_scores is None:
                         rec_items, rec_scores = sub_rec_items, sub_rec_scores
                     else:
@@ -190,7 +201,8 @@ class BaseModel(ABC):
                 for i in range(math.ceil(movie_num/batch_num)):
                     start, end = i * batch_num, min((i+1) * batch_num, movie_num)
                     sub_rec_items, sub_rec_scores = self._recommend_for_movies(
-                        movies[start:end], users, user_feature, movie_feature, maxsize)
+                        movies[start:end], users, user_feature, movie_feature, maxsize,
+                        remove_old_actions_set)
                     if rec_items is None and rec_scores is None:
                         rec_items, rec_scores = sub_rec_items, sub_rec_scores
                     else:
