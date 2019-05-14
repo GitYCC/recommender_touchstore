@@ -235,7 +235,10 @@ class LIBMFConnecter:
             flush_list = list(range(0, epoch, 50)) + [epoch-1]
 
             def func(line):
-                epoch_index = int(line.strip().split(' ')[0])
+                try:
+                    epoch_index = int(line.strip().split(' ')[0])
+                except Exception:
+                    return True
                 return epoch_index in flush_list
             return func
 
