@@ -39,6 +39,7 @@ def prepare_datagroup(train_start_year, valid_start_year):
 
     Args:
         train_start_year (int): A year of training start time.
+                                If none, it means `train_start_year` is unbounded.
         valid_start_year (int): A year of validation start time.
 
     Note:
@@ -60,7 +61,10 @@ def prepare_datagroup(train_start_year, valid_start_year):
     tracer.log_param('valid_start_year', valid_start_year)
 
     datagroup = _get_public_datagroup()
-    _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
+    if train_start_year:
+        _, datagroup_after = process.split_datagroup(train_start_year, datagroup)
+    else:
+        datagroup_after = datagroup
     train_group, valid_group = process.split_datagroup(valid_start_year, datagroup_after)
 
     with TemporaryDirectory() as temp_dir:
