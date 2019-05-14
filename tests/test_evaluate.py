@@ -10,6 +10,7 @@ class TestRatingEvaluator:
         acut_y = np.array([1., 2., 3.])
         pred_y_1 = np.array([1., 2., 3.])
         pred_y_2 = np.array([3., 2., 1.])
+        pred_y_3 = np.array([3., 1., np.nan])
 
         pair = mocker.MagicMock()
         assert (0. - config.FLOAT_EPSILN < RatingEvaluator(pair, acut_y, pred_y_1).get_rms()
@@ -17,6 +18,9 @@ class TestRatingEvaluator:
         assert (1.632993 - config.FLOAT_EPSILN <
                 RatingEvaluator(pair, acut_y, pred_y_2).get_rms() <
                 1.632993 + config.FLOAT_EPSILN)
+        assert (1.581138 - config.FLOAT_EPSILN <
+                RatingEvaluator(pair, acut_y, pred_y_3).get_rms() <
+                1.581138 + config.FLOAT_EPSILN)
 
 
 class TestRecommendEvaluator:
