@@ -350,7 +350,7 @@ class MatrixFactorizationBase(BaseModel):
 
         df['rating'] = self._global_b
 
-        where_nan_row = df.isnull().any(axis=1)
+        where_nan_row = df['user_vector'].isnull() | df['movie_vector'].isnull()
         df_full = df.loc[~where_nan_row, :]
         user_vectors = np.array(df_full['user_vector'].values.tolist())
         movie_vectors = np.array(df_full['movie_vector'].values.tolist())
